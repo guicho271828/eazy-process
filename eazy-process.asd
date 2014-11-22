@@ -20,7 +20,11 @@
   :author "Masataro Asai"
   :mailto "guicho2.71828@gmail.com"
   :license "LLGPL"
-  :depends-on (:iterate :alexandria :cffi :optima)
+  :depends-on (:iterate :alexandria :cffi :optima :trivial-shell
+                        :cl-syntax-interpol
+                        :cl-syntax-annot
+                        :cl-ppcre
+                        :cl-rlimit)
   :components ((:module "src"
                 :components
                 ((:file "package"))))
