@@ -76,13 +76,38 @@
             (map-line s))))
 
 @export
-(defun cgroup-name ()
+(defvar *default-cgroup*
   (lastcar (first (cgroup))))
 
 @export
-(defun cgcreate (controllers &optional (name #?"$((cgroup-name))/lisp"))
-  (let ((interpol:*list-delimiter* #\,)
-        (*print-case* :downcase))
-    (princ #?"cgcreate -g @(controllers):$(name)")
-    (shell-command #?"cgcreate -g @(controllers):$(name)")))
+(defun whoami ()
+  (string-trim #?"\n" (shell-command "whoami")))
+
+@export
+(defun cgcreate (controllers &key
+                               (as (whoami))
+                               (group as)
+                               (name "lisp"))
+  (let* ((interpol:*list-delimiter* #\,)
+         (*print-case* :downcase)
+         (command #?"cgcreate -a $(as):$(group) -t $(as):$(group) -g @(controllers):$(*default-cgroup*)/$(name)"))
+    (princ command)
+    (shell-command command)))
+
+@export
+(defun lscgroup ()
+  "no filtering method: you should be able to do it within lisp
+ Example return value:
+
+ ((\"cpuset\" \"/\") (\"cpuset\" \"/user\") ... ) "
+  (let ((*print-case* :downcase))
+    (with-input-from-string (s (shell-command
+                                (format nil "lscgroup")))
+      (mapcar (lambda (str)
+                (register-groups-bind
+                    (subsystem groupname)
+                    ("([^:]*):(.*)" str)
+                  (list subsystem groupname)))
+              (map-line s)))))
+
 
