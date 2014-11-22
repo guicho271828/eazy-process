@@ -1,0 +1,28 @@
+#|
+  This file is a part of eazy-process project.
+  Copyright (c) 2014 Masataro Asai (guicho2.71828@gmail.com)
+|#
+
+#|
+  Author: Masataro Asai (guicho2.71828@gmail.com)
+|#
+
+
+
+(in-package :cl-user)
+(defpackage eazy-process-asd
+  (:use :cl :asdf))
+(in-package :eazy-process-asd)
+
+
+(defsystem eazy-process
+  :version "0.1"
+  :author "Masataro Asai"
+  :mailto "guicho2.71828@gmail.com"
+  :license "LLGPL"
+  :depends-on (:iterate :alexandria :cffi :optima)
+  :components ((:module "src"
+                :components
+                ((:file "package"))))
+  :description ""
+  :in-order-to ((test-op (load-op eazy-process.test))))
