@@ -119,3 +119,5 @@
 (defun cgroup-intersection (a b))
 (defun cgroup-min (a b))
 (defun cgroup-max (a b))
+
+(defun cgexec ())
