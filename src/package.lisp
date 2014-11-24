@@ -111,3 +111,11 @@
               (map-line s)))))
 
 
+
+
+
+(defun cgroup-difference (a b))
+(defun cgroup-union (a b))
+(defun cgroup-intersection (a b))
+(defun cgroup-min (a b))
+(defun cgroup-max (a b))

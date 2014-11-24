@@ -27,6 +27,7 @@
                         :cl-rlimit)
   :components ((:module "src"
                 :components
-                ((:file "package"))))
+                ((:file "libcgroup")
+                 (:file "package"))))
   :description ""
   :in-order-to ((test-op (load-op eazy-process.test))))
