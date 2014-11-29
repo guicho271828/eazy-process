@@ -4,7 +4,7 @@
 
 include_dir = /usr/include/
 
-std 	= signal.h std*.h sys/*.h
+std 	= *.h sys/*.h
 
 headers = $(shell cd $(include_dir) ; ls $(std))
 
@@ -18,3 +18,7 @@ all: $(patsubst %.h,%.lisp,$(headers))
 
 clean:
 	git clean -xf ./*
+
+clean-failure:
+	find -path "*.err" -delete
+	find -path "*.expanded" -delete
