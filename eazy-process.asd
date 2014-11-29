@@ -25,7 +25,13 @@
                         :cl-syntax-annot
                         :cl-ppcre
                         :cl-rlimit)
-  :components ((:module "src"
+  :components ((:module :swig
+                :serial t
+                :components
+                ((:file :package)
+                 (:file :signal)
+                 (:file :unistd)))
+               (:module "src"
                 :serial t
                 :components
                 ((:file "package")
