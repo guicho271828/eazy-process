@@ -10,8 +10,27 @@ q (){
 name=${1%.*}
 
 mkdir -p $(dirname $name)
-echo '%feature("export");' > $name.expanded
-cat shared.h $(locate-header $name.h) | cpp -E >> $name.expanded
+cat > $name.expanded <<EOF
+%feature("export");
+EOF
+
+for ig in $(cat ignored_list)
+do
+    echo "%ignore \"$ig\";" >> $name.expanded
+done
+
+
+    # grep -v "string.h" | \
+    # grep -v "stdio.h" | \
+    # grep -v "stddef.h" | \
+
+
+cat shared.h $(locate-header $name.h) | \
+    cpp -E | \
+    grep -v "typedef long unsigned int size_t;" | \
+    grep -v "typedef int wchar_t;" | \
+    grep -v "strerror_r" | \
+    grep -v "extern int fw\?scanf"  >> $name.expanded
 swig -cffi -module ${name##*/} $name.expanded 2> $name.err
 # swig -cffi -o $name.lispbody -module ${name##*/} $name.expanded 2> $name.err
 cat $name.err >&2
@@ -19,11 +38,11 @@ cat $name.err >&2
 q mv $name.lisp $name.lispbody
 cat > $name.lisp <<EOF
 (in-package :eazy-process.swig)
-$(q cat $name.lispbody)
+$(cat $name.lispbody)
 EOF
 
 showlines (){
-    head -n $(($2-1)) $1 | tail -n 3
+    head -n $(($2+1)) $1 | tail -n 3
 }
 
 if [[ $(grep Error $name.err | wc -l | cut -d' ' -f 1) -gt 0 ]]
