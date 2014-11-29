@@ -15,7 +15,7 @@ cat $name.err >&2
 
 mv $name.lisp $name.lispbody
 cat > $name.lisp <<EOF
-(in-package :eazy-process.grovel)
+(in-package :eazy-process.swig)
 $(cat $name.lispbody)
 EOF
 
