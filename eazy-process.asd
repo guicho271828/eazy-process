@@ -26,8 +26,10 @@
                         :cl-ppcre
                         :cl-rlimit)
   :components ((:module "src"
+                :serial t
                 :components
                 ((:file "libcgroup")
-                 (:file "package"))))
+                 (:file "package")
+                 (:cffi-grovel-file :stdio))))
   :description ""
   :in-order-to ((test-op (load-op eazy-process.test))))

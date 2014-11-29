@@ -94,29 +94,45 @@
     (princ command)
     (shell-command command)))
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defstruct cgroup
+    (system "" :type string)
+    (hierarchy "" :type string)))
+
 @export
-(defun lscgroup ()
-  "no filtering method: you should be able to do it within lisp
- Example return value:
+(defun lscgroup (&key system hierarchy)
+  "Example return value:
 
  ((\"cpuset\" \"/\") (\"cpuset\" \"/user\") ... ) "
   (let ((*print-case* :downcase))
     (with-input-from-string (s (shell-command
                                 (format nil "lscgroup")))
-      (mapcar (lambda (str)
-                (register-groups-bind
-                    (subsystem groupname)
-                    ("([^:]*):(.*)" str)
-                  (list subsystem groupname)))
-              (map-line s)))))
+      (iter (for line in (map-line s))
+            (register-groups-bind
+                (system2 hierarchy2)
+                ("([^:]*):(.*)" line)
+              (when (and
+                     (or (not system) (string-equal system system2))
+                     (< (length hierarchy) (length hierarchy2))
+                     (every #'char-equal hierarchy hierarchy2))
+                (collect (make-cgroup :system system2 :hierarchy hierarchy2))))))))
 
+(defun cgroup-system-mount-point (name)
+  (eazy-process.cgroup:cgroup-init)
+  (with-foreign-pointer-as-string (mountpoint* +filename-max+)
+    (with-foreign-string (name* name)
+      (eazy-process.cgroup:CGROUP-GET-SUBSYS-MOUNT-POINT name* mountpoint*))))
 
-
+;; (defun cgroup-resource (cg)
+;;   (match cg
+;;     ((cgroup system hierarchy)
+     
 
 
 (defun cgroup-difference (a b))
 (defun cgroup-union (a b))
 (defun cgroup-intersection (a b))
+
 (defun cgroup-min (a b))
 (defun cgroup-max (a b))
 
