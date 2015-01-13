@@ -19,22 +19,19 @@
   :version "0.1"
   :author "Masataro Asai"
   :mailto "guicho2.71828@gmail.com"
-  :license "LLGPL"
-  :depends-on (:iterate :alexandria :cffi :optima :trivial-shell
+  :licence "MIT"
+  :depends-on (:iterate :alexandria
+                        :cffi
+                        :optima
+                        :iolib/syscalls
+                        :trivial-garbage
                         :cl-syntax-interpol
                         :cl-syntax-annot
                         :cl-ppcre
                         :cl-rlimit)
-  :components ((:module :swig
+  :components ((:module "src"
                 :serial t
                 :components
-                ((:file :package)
-                 (:file :signal)
-                 (:file :unistd)))
-               (:module "src"
-                :serial t
-                :components
-                ((:file "package")
-                 (:cffi-grovel-file :stdio))))
+                ((:file "package"))))
   :description ""
   :in-order-to ((test-op (load-op eazy-process.test))))

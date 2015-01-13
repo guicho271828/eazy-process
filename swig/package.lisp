@@ -1,1 +1,0 @@
-(defpackage :eazy-process.swig)

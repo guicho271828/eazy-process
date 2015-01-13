@@ -6,9 +6,11 @@
 (in-package :cl-user)
 (defpackage :eazy-process.test
   (:use :cl
-        :eazy-process
+        :eazy-process.impl
+        :cl-ppcre
         :fiveam
-        :iterate :alexandria :cffi :optima))
+        :iterate :alexandria :cffi :optima)
+  (:shadow :fail))
 (in-package :eazy-process.test)
 
 
@@ -19,8 +21,8 @@
 ;; run test with (run! test-name) 
 ;;   test as you like ...
 
-(test eazy-process
+(test shell-command
+  (shell-command "ls -la"))
 
-  )
 
 
