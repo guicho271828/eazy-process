@@ -29,9 +29,11 @@
                         :cl-syntax-annot
                         :cl-ppcre
                         :cl-rlimit)
-  :components ((:module "src"
+  :components ((:module :src
                 :serial t
                 :components
-                ((:file "package"))))
+                ((:file :package)
+                 (:file :shell)
+                 (:file :process))))
   :description ""
   :in-order-to ((test-op (load-op eazy-process.test))))
