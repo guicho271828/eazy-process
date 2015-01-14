@@ -24,3 +24,5 @@ The name/path of the interpreter must be separated by spaces from the options li
 The process is forked, then the child process calls execvp with the name of the interpreter.
 Therefore, the actual pathname of the intepreter can be resolved using PATH environment variable.
 ")
+
+;; (format t "; ~a '~a'" *interpreter* command)

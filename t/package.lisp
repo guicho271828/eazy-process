@@ -22,7 +22,8 @@
 ;;   test as you like ...
 
 (test shell-command
-  (shell-command "ls -la"))
-
+  (finishes
+    (shell "ls" "-la")
+    (shell "sh" "-c" "echo subshell! ; ls -la")))
 
 
