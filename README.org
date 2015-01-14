@@ -37,10 +37,9 @@ hierarchycal manner while keeping the implementation-independency.
    the purpose of the library seems different.
 5. Back to procps. This time, saw the C source code instead of just the
    header files. They are reading the /proc ... ewww. Better reading by
-   lispselves.
-
-
-
+   lispselves. However, procfs is not available on the other platforms again...
+6. http://pythonhosted.org/psutil/ is using different implementations for
+   different OS'es. uh oh...
 
 * Dependencies
 This library is at least tested on implementation listed below:

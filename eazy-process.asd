@@ -34,6 +34,7 @@
                 :components
                 ((:file :package)
                  (:file :shell)
-                 (:file :process))))
+                 (:file :process)
+                 (:file :limit))))
   :description ""
   :in-order-to ((test-op (load-op eazy-process.test))))
