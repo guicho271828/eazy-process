@@ -6,12 +6,17 @@
 (in-package :cl-user)
 (defpackage :eazy-process.impl
   (:use :cl :iterate :alexandria :optima :cl-ppcre :cffi)
-  (:import-from :iolib/syscalls :fork :execvp :exit :kill :waitpid)
+  (:import-from :iolib/syscalls
+                :getpid
+                :fork :execvp
+                ;; :exit
+                :kill :waitpid)
   (:export
    #:shell
    #:%exec
    #:*interpreter*
    #:process
+   #:getpid
    #:pid
    #:wait))
 
