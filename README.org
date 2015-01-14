@@ -1,0 +1,67 @@
+
+#+startup: showall
+
+Yet Another Portable Library for Process Handling / Subshell Invokation
+
+* Status
+
+incomplete
+
+* Goals
+
++ Implementation-independent process handling / subshell invokation through cffi, fork, exec
+  + pros: arbitrary number of fd's
+  + pros: full power of pipe, mkfifo, sockets
+  + cons: implicit block of wait(2) by some host lisp implementations ?
++ Memory / Walltime management of the child processes
+  + hierarchycal model
+  + maybe also include network/IO restriction
++ Compatibility layer to the existing State-of-the-Art libraries
+  + trivial-shell
+  + inferior-shell
+  + sb-ext:run-program
+
+* Which library should I use?
+
+I have searched for ways to manage the memory usage of processes in a
+hierarchycal manner while keeping the implementation-independency.
+
+1. libcgroup was rejected because it only targets Linux, while I see many
+   other people running Mac OS X on their fancy laptops (well, I'm a
+   dedicated fan of thinkpad X-series since X20...)
+2. Procfs, in pathnames. Rejected because it seemed slow.
+3. libprocfs. Rejected because the library design is owful, as described in
+   https://gitorious.org/procps/pages/The_libprocps_redesign
+4. Now towards hwloc. It is used by htop, torque, OpenMPI. Holds wide
+   variety of unix platforms, including Darwin and windows.
+
+
+* Dependencies
+This library is at least tested on implementation listed below:
+
++ SBCL 1.2.1 on X86-64 Linux 3.13.0-39-generic (author's environment)
+
+Also, it depends on the following libraries:
+
++ iterate by *Jonathan Amsterdam* :
+    Jonathan Amsterdam's iterator/gatherer/accumulator facility
++ alexandria by ** :
+    Alexandria is a collection of portable public domain utilities.
++ cffi by *James Bielman  <jamesjb@jamesjb.com>* :
+    The Common Foreign Function Interface
++ optima by *Tomohiro Matsuyama* :
+    Optimized Pattern Matching Library
+
+* Author
+
+Masataro Asai (guicho2.71828@gmail.com)
+
+* Copyright
+
+Copyright (c) 2014 Masataro Asai (guicho2.71828@gmail.com)
+
+# * License
+
+# Licensed under the LLGPL License.
+
+
