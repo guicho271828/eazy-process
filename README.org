@@ -30,10 +30,16 @@ hierarchycal manner while keeping the implementation-independency.
    other people running Mac OS X on their fancy laptops (well, I'm a
    dedicated fan of thinkpad X-series since X20...)
 2. Procfs, in pathnames. Rejected because it seemed slow.
-3. libprocfs. Rejected because the library design is owful, as described in
+3. libprocps. Rejected because the library design is owful, as described in
    https://gitorious.org/procps/pages/The_libprocps_redesign
 4. Now towards hwloc. It is used by htop, torque, OpenMPI. Holds wide
-   variety of unix platforms, including Darwin and windows.
+   variety of unix platforms, including Darwin and windows. --- it seems
+   the purpose of the library seems different.
+5. Back to procps. This time, saw the C source code instead of just the
+   header files. They are reading the /proc ... ewww. Better reading by
+   lispselves.
+
+
 
 
 * Dependencies
