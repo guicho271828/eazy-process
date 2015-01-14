@@ -2,7 +2,10 @@
 (in-package :eazy-process.impl)
 
 (defclass process ()
-  ((#:pid :reader pid :initarg :pid)))
+  ((#:pid :reader pid :initarg :pid))
+  (:documentation
+   "A class representing a process.
+Properties of a process are accessible through several functions."))
 
 (defun %make-process (pid)
   (let ((process (make-instance 'process :pid pid)))
