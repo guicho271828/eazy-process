@@ -9,7 +9,7 @@
     (trivial-garbage:finalize
      process
      (lambda ()
-       (ignore-errors ; in case pid is already dead
+       (ignore-errors ; in case pid has already dead
          (iter (for i from 1 by (lambda (x) (* 2 x)))
                (for n below 5)
                (kill pid 15)
@@ -36,6 +36,6 @@ For the further investigation of waitpid-status, use iolib/syscalls:WIFSIGNALED 
     (values (iolib/syscalls:WIFEXITED status)
             (iolib/syscalls:WEXITSTATUS status))))
 
-
+;; pwdx
 
 
