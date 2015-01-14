@@ -11,7 +11,7 @@ In this file, we always treat directory pathnames without the trailing slash.
 |#
 
 (define-foreign-library libprocps
-  (:unix (:or "libprocps.so.3" "libprocps.so"))
+  (:unix "libprocps.so")
   (t (:default "libprocps")))
 
 (use-foreign-library libprocps)
