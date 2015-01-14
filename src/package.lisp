@@ -8,7 +8,7 @@
   (:use :cl :iterate :alexandria :optima :cl-ppcre :cffi)
   (:import-from :iolib/syscalls :fork :execvp :exit :kill :waitpid)
   (:export
-   #:shell-command
+   #:shell
    #:%exec
    #:*interpreter*
    #:process

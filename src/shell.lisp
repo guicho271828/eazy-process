@@ -1,21 +1,8 @@
 (in-package :eazy-process.impl)
 
-
 #|
 
-*  trivial-shell compatibility (almost)
-
-Goal: simple exec/fork interface compatible to trivial-shell except
-timeout-related stuff
-
-https://github.com/gwkkwg/trivial-shell.git
-
-trivial shell has the following interace
-
-trivial-shell:*BOURNE-COMPATIBLE-SHELL* 	trivial-shell:*SHELL-SEARCH-PATHS*
-trivial-shell:EXIT 	trivial-shell:GET-ENV-VAR
-trivial-shell:SHELL-COMMAND 	trivial-shell:TIMEOUT-ERROR
-trivial-shell:TIMEOUT-ERROR-COMMAND 	trivial-shell:WITH-TIMEOUT
+subshell implemented by fork-exec
 
 |#
 
@@ -30,8 +17,8 @@ The process is forked, then the child process calls execvp with the name of the 
 Therefore, the actual pathname of the intepreter can be resolved using PATH environment variable.
 ")
 
-(defun shell-command (command)
-  "Asynchronously execute `command` using a Bourne-compatible shell, returns a process structure object.
+(defun shell (command)
+  "Asynchronously execute `command` using an interpreter, returns a process structure object.
 The `command' is a valid script in the interpreter specified in `*interpreter*'.
 
 On error during system call, iolib/syscalls:syscall-error is signalled."
