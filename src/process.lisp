@@ -10,10 +10,9 @@
      process
      (lambda ()
        (ignore-errors ; in case pid has already dead
-         (iter (for i from 1 by (lambda (x) (* 2 x)))
-               (for n below 5)
+         (iter (for n below 5)
                (kill pid 15)
-               (sleep i))
+               (sleep (expt 2 n)))
          (kill pid 9)
          (waitpid pid iolib/syscalls:WNOHANG))))
     process))
