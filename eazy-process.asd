@@ -35,6 +35,6 @@
                 ((:file :package)
                  (:file :shell)
                  (:file :process)
-                 (:file :limit))))
+                 (:file :procfs))))
   :description ""
   :in-order-to ((test-op (load-op eazy-process.test))))

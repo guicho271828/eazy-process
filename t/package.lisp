@@ -26,4 +26,30 @@
     (shell "ls" "-la")
     (shell "sh" "-c" "echo subshell! ; ls -la")))
 
+(defun test-subfields (fn fields)
+  (finishes (print (funcall fn :self)))
+  (iter (for f in-sequence fields)
+        (is-true (typep (funcall fn :self f) 'integer)
+                 "~a not integer" f)
+        (is-true (typep (funcall fn :self (princ-to-string f)) 'integer)
+                 "~a not integer" f)
+        (is-true (typep (funcall fn :self (let ((*print-case* :downcase))
+                                            (princ-to-string f))) 'integer)
+                 "~a not integer" f))
+  (signals error (funcall fn :self :nosuchfield))
+  (signals error (funcall fn :self "nosuchfield"))
+  (signals error (funcall fn :self "NOSUCHFIELD")))
 
+(test procfs
+  (finishes
+    (proc :self :fdinfo)
+    (proc :self :fd)
+    (fd :self 0)
+    (fd :self 1)
+    (fd :self 2))
+  (multiple-value-bind (path exists?) (fd :self 5)
+    (is-false exists?)))
+
+(test io (test-subfields #'io +io-keywords+))
+(test statm (test-subfields #'statm +statm-keywords+))
+(test stat (test-subfields #'stat (remove :state (remove :comm +stat-keywords+))))

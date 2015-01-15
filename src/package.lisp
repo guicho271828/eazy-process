@@ -18,6 +18,14 @@
    #:process
    #:getpid
    #:pid
-   #:wait))
+   #:wait
+   #:io
+   #:fd
+   #:proc
+   #:statm
+   #:stat
+   #:+stat-keywords+
+   #:+statm-keywords+
+   #:+io-keywords+))
 
   
