@@ -36,7 +36,7 @@ where existsp shows if the file or the directory exists.
 ;;; clear_refs  cwd              gid_map  map_files  mountstats  oom_score  root           stack      task
 
 
-(defun fd (process &optional (num 0)) (proc process :fd num))
+(defun fd (process fd) (proc process :fd fd))
 
 (defun awk (path regex per-line-fn)
   (with-open-file (stream path)
