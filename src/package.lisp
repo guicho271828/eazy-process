@@ -6,10 +6,12 @@
 (in-package :cl-user)
 (defpackage :eazy-process.impl
   (:use :cl :iterate :alexandria :optima :cl-ppcre :cffi)
+  (:import-from :trivial-garbage :gc :finalize)
   (:import-from :iolib/syscalls
-                :getpid
+                :getpid :getppid :getpgid
                 :fork :execvp
                 ;; :exit
+                :pipe :dup2
                 :kill :waitpid)
   (:export
    #:shell
@@ -17,6 +19,10 @@
    #:process
    #:getpid
    #:pid
+   #:getppid
+   #:ppid
+   #:getpgid
+   #:pgid
    #:wait
    ;; procfs
    #:io
@@ -26,7 +32,13 @@
    #:stat
    #:+stat-keywords+
    #:+statm-keywords+
-   #:+io-keywords+))
+   #:+io-keywords+
+   #:+fdspecs-default+
+   #:fd-as-pathname
+   #:fds
+   #:subprocesses
+   #:all-processes
+   #:tasks))
 
   
 (defpackage :eazy-process

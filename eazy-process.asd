@@ -24,6 +24,7 @@
                         :cffi
                         :optima
                         :iolib/syscalls
+                        :iolib/os
                         :trivial-garbage
                         :cl-syntax-interpol
                         :cl-syntax-annot

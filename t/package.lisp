@@ -21,10 +21,53 @@
 ;; run test with (run! test-name) 
 ;;   test as you like ...
 
-(test shell-command
+(test pids
   (finishes
-    (shell "ls" "-la")
-    (shell "sh" "-c" "echo subshell! ; ls -la")))
+    (format t "~& my pid : ~a" (getpid))
+    (format t "~& ppid : ~a" (ppid))
+    (format t "~& gpid : ~a" (gpid))
+    (format t "~& children : ~a" (subprocesses (getpid)))
+    (format t "~& threads : ~a" (tasks (getpid)))))
+
+(test shell
+  (finishes (wait (print (shell '("ls" "-la")))))
+  (finishes (wait (print (shell '("sh" "-c" "echo subshell! ; ls -la")))))
+  (finishes
+    (let ((p1 (shell '("sleep" "2"))))
+      (print :test-sleep)
+      (print p1)
+      (print (fd-as-pathname p1 1))
+      (wait p1)))
+  (finishes
+    (let ((p1 (shell `("uname" "-a"))))
+      (print :test-uname)
+      (print p1)
+      (print (fd-as-pathname p1 1))
+      (with-open-file (s (fd-as-pathname p1 1))
+        (print (read-line s)))
+      (wait p1)))
+  (finishes
+    (let (p1 p2)
+      (unwind-protect
+           (progn
+             (print :test-pipe)             
+
+             (setf p1 (shell `("ps" "-ef")))
+             (format t "~&process 1 : ~a , fd ~a" p1 (fds p1))
+
+             (setf p2 (shell `("cat")  (list (fd p1 1) :out :out)))
+             (format t "~&process 2 : ~a , fd ~a" p2 (fds p2))
+
+             (with-open-file (s (fd-as-pathname p2 1))
+               (print (read-line s))
+               (print (read-line s))))
+        (print :waiting-p1)
+        (wait p1)
+        (print :waiting-p2)
+        (wait p2)))))
+
+;; uname -a | cut -d' ' -f 1
+
 
 (defun test-subfields (fn fields)
   (finishes (print (funcall fn :self)))
@@ -43,12 +86,7 @@
 (test procfs
   (finishes
     (proc :self :fdinfo)
-    (proc :self :fd)
-    (fd :self 0)
-    (fd :self 1)
-    (fd :self 2))
-  (multiple-value-bind (path exists?) (fd :self 5)
-    (is-false exists?)))
+    (proc :self :fd)))
 
 (test io (test-subfields #'io +io-keywords+))
 (test statm (test-subfields #'statm +statm-keywords+))

@@ -35,9 +35,6 @@ where existsp shows if the file or the directory exists.
 ;;; cgroup      cpuset           fdinfo   loginuid   mounts      oom_adj    projid_map     smaps      syscall
 ;;; clear_refs  cwd              gid_map  map_files  mountstats  oom_score  root           stack      task
 
-
-(defun fd (process fd) (proc process :fd fd))
-
 (defun awk (path regex per-line-fn)
   (with-open-file (stream path)
     (iter (for line = (read-line stream nil nil))
@@ -57,6 +54,7 @@ where existsp shows if the file or the directory exists.
     :read_bytes :write_bytes
       :cancelled_write_bytes)
   :test #'equal)
+
 (defun io (process &optional field)
   "Returns the corresponding value of the field in /proc/[pid]/io .
 If field is not specified, it returns an alist.
@@ -81,6 +79,7 @@ Example: (io :self :rchar) "
 (define-constant +statm-keywords+
   #(:size :resident :share :text :lib :data :dt)
   :test #'equal)
+
 (defun statm (process &optional field)
   "Returns the corresponding value of the field in /proc/[pid]/statm .
 If field is not specified, it returns an alist.
@@ -109,6 +108,7 @@ Example: (statm :self :resident) "
     :wchan :nswap :cnswap :exit_signal :processor :rt_priority :policy
     :delayacct_blkio_ticks :guest_time :cguest_time)
   :test #'equal)
+
 (defun stat (process &optional field)
   "Returns the corresponding value of the field in /proc/[pid]/statm .
 If field is not specified, it returns an alist.
