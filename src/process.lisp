@@ -38,6 +38,5 @@ For the further investigation of waitpid-status, use iolib/syscalls:WIFSIGNALED 
     (values (iolib/syscalls:WIFEXITED status)
             (iolib/syscalls:WEXITSTATUS status))))
 
-;; pwdx
 
 

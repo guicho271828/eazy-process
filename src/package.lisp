@@ -14,11 +14,11 @@
   (:export
    #:shell
    #:%exec
-   #:*interpreter*
    #:process
    #:getpid
    #:pid
    #:wait
+   ;; procfs
    #:io
    #:fd
    #:proc
@@ -29,3 +29,21 @@
    #:+io-keywords+))
 
   
+(defpackage :eazy-process
+  (:use :cl :iterate :alexandria :optima :cl-ppcre :cffi :eazy-process.impl)
+  (:export
+   #:shell
+   #:%exec
+   #:process
+   #:getpid
+   #:pid
+   #:wait
+   ;; procfs
+   #:io
+   #:fd
+   #:proc
+   #:statm
+   #:stat
+   #:+stat-keywords+
+   #:+statm-keywords+
+   #:+io-keywords+))
