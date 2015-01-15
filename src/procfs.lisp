@@ -52,10 +52,11 @@ where existsp shows if the file or the directory exists.
                            (collect
                                (subseq line rs re)))))))))
 
-(defconstant +io-keywords+
+(define-constant +io-keywords+
   #(:rchar :wchar :syscr :syscw
     :read_bytes :write_bytes
-    :cancelled_write_bytes))
+      :cancelled_write_bytes)
+  :test #'equal)
 (defun io (process &optional field)
   "Returns the corresponding value of the field in /proc/[pid]/io .
 If field is not specified, it returns an alist.
@@ -77,8 +78,9 @@ Example: (io :self :rchar) "
         (nreverse acc))))
 
 
-(defconstant +statm-keywords+
-  #(:size :resident :share :text :lib :data :dt))
+(define-constant +statm-keywords+
+  #(:size :resident :share :text :lib :data :dt)
+  :test #'equal)
 (defun statm (process &optional field)
   "Returns the corresponding value of the field in /proc/[pid]/statm .
 If field is not specified, it returns an alist.
@@ -98,14 +100,15 @@ Example: (statm :self :resident) "
         (map 'list (lambda (field) (cons field (read s))) +statm-keywords+))))
 
 
-(defconstant +stat-keywords+ 
+(define-constant +stat-keywords+ 
   #(:pid :comm :state :ppid :pgrp :session :tty_nr :tpgid :lags
     :minflt :cminflt :majflt :cmajflt :utime :stime :cutime :cstime
     :priority :nice :num_threads :itrealvalue :starttime
     :vsize :rss :rsslim :startcode :endcode
     :startstack :kstkesp :kstkeip :signal :blocked :sigignore :sigcatch
     :wchan :nswap :cnswap :exit_signal :processor :rt_priority :policy
-    :delayacct_blkio_ticks :guest_time :cguest_time))
+    :delayacct_blkio_ticks :guest_time :cguest_time)
+  :test #'equal)
 (defun stat (process &optional field)
   "Returns the corresponding value of the field in /proc/[pid]/statm .
 If field is not specified, it returns an alist.
