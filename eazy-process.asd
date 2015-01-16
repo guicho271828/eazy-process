@@ -37,7 +37,13 @@
                  (:file :specials)
                  (:file :shell)
                  (:file :process)
-                 (:file :procfs)))
+                 #+linux
+                 (:module :linux
+                          :serial t
+                          :components
+                          ((:file :specials)
+                           (:file :process)
+                           (:file :procfs)))))
                (:module :compat
                 :serial t
                 :components
