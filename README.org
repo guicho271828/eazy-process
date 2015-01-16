@@ -1,7 +1,7 @@
 
 #+startup: showall
 
-Yet Another Portable Library for Process Handling / Subshell Invokation
+Yet Another Portable Library for Process Handling / Subshell Invocation
 
 * Status
 
@@ -9,7 +9,7 @@ incomplete
 
 * Goals
 
-+ [X] Implementation-agnostic process handling / subshell invokation through cffi, fork, exec
++ [X] Implementation-agnostic process handling / subshell invocation through cffi, fork, exec
   + pros: arbitrary number of fd's
   + pros: full power of pipe, mkfifo, sockets
   + cons: implicit block of wait(2) by some host lisp implementations ?
