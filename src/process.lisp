@@ -76,7 +76,11 @@ output of the subprocess by opening this file."
             (parse-integer
              (iolib.pathnames:file-path-file-name path)))))
 
-(defun subprocesses (ppid)
+(defun subprocesses (target-ppid)
   (iter (for pid in (all-processes))
-        (when (= ppid (stat pid :ppid))
-          (collect pid))))
+        ;; since the process might be dead and the directory could
+        ;; disappear
+        (let ((ppid (ignore-errors (stat pid :ppid))))
+          (when ppid
+            (when (= ppid target-ppid)
+              (collect pid))))))
