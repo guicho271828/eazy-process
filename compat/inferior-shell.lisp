@@ -5,8 +5,7 @@
 *  inferior-shell compatibility
 
 Goal: sexp -> bash compiler in inferior-shell
-
-trivial shell has the following interace
+inferior-shell has the following interace
 
 run
 run/s
