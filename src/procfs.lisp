@@ -13,8 +13,6 @@ it requires libbsd library
 
 ;;; proc
 
-(defvar *procfs-root* "/proc")
-
 (defun proc (process &rest subdir)
   "Compose a pathname based on the given arguments. Return (values pathname existsp)
 where existsp shows if the file or the directory exists.
@@ -49,12 +47,6 @@ where existsp shows if the file or the directory exists.
                            (collect
                                (subseq line rs re)))))))))
 
-(define-constant +io-keywords+
-  #(:rchar :wchar :syscr :syscw
-    :read_bytes :write_bytes
-      :cancelled_write_bytes)
-  :test #'equal)
-
 (defun io (process &optional field)
   "Returns the corresponding value of the field in /proc/[pid]/io .
 If field is not specified, it returns an alist.
@@ -75,11 +67,6 @@ Example: (io :self :rchar) "
                            (parse-integer var)) acc)))
         (nreverse acc))))
 
-
-(define-constant +statm-keywords+
-  #(:size :resident :share :text :lib :data :dt)
-  :test #'equal)
-
 (defun statm (process &optional field)
   "Returns the corresponding value of the field in /proc/[pid]/statm .
 If field is not specified, it returns an alist.
@@ -93,21 +80,10 @@ Example: (statm :self :resident) "
                      (if (string-equal target field)
                          (return (read s))
                          (skip))))
-            (map nil #'read-field-or-skip +statm-keywords+)
+            (map nil #'read-field-or-skip #.+statm-keywords+)
             (error "invalid field name specified: ~a" field))))
       (with-open-file (s (proc process :statm))
-        (map 'list (lambda (field) (cons field (read s))) +statm-keywords+))))
-
-
-(define-constant +stat-keywords+ 
-  #(:pid :comm :state :ppid :pgrp :session :tty_nr :tpgid :lags
-    :minflt :cminflt :majflt :cmajflt :utime :stime :cutime :cstime
-    :priority :nice :num_threads :itrealvalue :starttime
-    :vsize :rss :rsslim :startcode :endcode
-    :startstack :kstkesp :kstkeip :signal :blocked :sigignore :sigcatch
-    :wchan :nswap :cnswap :exit_signal :processor :rt_priority :policy
-    :delayacct_blkio_ticks :guest_time :cguest_time)
-  :test #'equal)
+        (map 'list (lambda (field) (cons field (read s))) #.+statm-keywords+))))
 
 (defun stat (process &optional field)
   "Returns the corresponding value of the field in /proc/[pid]/statm .
@@ -122,9 +98,9 @@ Example: (statm :self :rss) "
                      (if (string-equal target field)
                          (return (read s))
                          (skip))))
-            (map nil #'read-field-or-skip +stat-keywords+)
+            (map nil #'read-field-or-skip #.+stat-keywords+)
             (error "invalid field name specified: ~a" field))))
       (with-open-file (s (proc process :stat))
-        (map 'list (lambda (field) (cons field (read s))) +stat-keywords+))))
+        (map 'list (lambda (field) (cons field (read s))) #.+stat-keywords+))))
 
 

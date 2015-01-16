@@ -71,7 +71,7 @@ output of the subprocess by opening this file."
                (iolib.pathnames:file-path-file-name path))))))
 
 (defun tasks (pid)
-  (iter (for path in (iolib.os:list-directory (proc pid :tasks)))
+  (iter (for path in (iolib.os:list-directory (proc pid :task)))
         (collect 
             (parse-integer
              (iolib.pathnames:file-path-file-name path)))))

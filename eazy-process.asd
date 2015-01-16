@@ -34,6 +34,7 @@
                 :serial t
                 :components
                 ((:file :package)
+                 (:file :specials)
                  (:file :shell)
                  (:file :process)
                  (:file :procfs))))

@@ -6,14 +6,6 @@ subshell implemented with fork-execvp
 
 |#
 
-(define-constant +fdspecs-default+ '(:in :out :out)
-  :test #'equal
-  :documentation "fd-specifier is one of 6 symbols
-:i, :in, :input, :o,:out,:output, or an integer fd.
-The first 3 and the last 3 symbols are the synonyms.")
-
-
-
 (defun canonicalize-fdspec (fdspec)
   "Take an fd-specifier and return a cons.
 When fd-specifier is a symbol, the return value is (<int parent-fd> . <int child-fd>),
@@ -36,7 +28,7 @@ If the FDSPEC is an integer <int fd>, it returns (nil . <int fd>)."
   (declare (ignore x))
   (multiple-value-list (pipe)))
 
-(defun shell (argv &optional (fdspecs +fdspecs-default+))
+(defun shell (argv &optional (fdspecs '#.+fdspecs-default+))
   "Asynchronously execute `argv' using fork(2) and `execvp', returns a process structure object.
 
 ARGV is a sequence of strings. Each string is converted to

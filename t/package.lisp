@@ -23,10 +23,18 @@
 
 (test pids
   (finishes
-    (format t "~& my pid : ~a" (getpid))
-    (format t "~& ppid : ~a" (ppid))
-    (format t "~& gpid : ~a" (gpid))
-    (format t "~& children : ~a" (subprocesses (getpid)))
+    (format t "~& my pid : ~a" (getpid))))
+(test ppid
+  (finishes
+    (format t "~& ppid : ~a" (ppid (getpid)))))
+(test pgid
+  (finishes
+    (format t "~& gpid : ~a" (pgid (getpid)))))
+(test subprocesses
+  (finishes
+    (format t "~& children : ~a" (subprocesses (getpid)))))
+(test tasks
+  (finishes
     (format t "~& threads : ~a" (tasks (getpid)))))
 
 (test shell
@@ -39,7 +47,7 @@
       (print (fd-as-pathname p1 1))
       (wait p1)))
   (finishes
-    (let ((p1 (shell `("uname" "-a"))))
+    (let ((p1 (shell `("uname"))))
       (print :test-uname)
       (print p1)
       (print (fd-as-pathname p1 1))
