@@ -39,4 +39,5 @@
    #:subprocesses
    #:all-processes
    #:tasks
-   #:shell-command))
+   #:shell-command
+   #:*interpreter*))

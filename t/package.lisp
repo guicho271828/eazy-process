@@ -104,5 +104,13 @@
 ;; notice the newline!
 (test trivial-shell
   (is (string= "10
-" (shell-command "expr 1 + 2 + 3 + 4"))))
+" (shell-command "expr 1 + 2 + 3 + 4")))
+  ;; bash-specific stuff
+  (let ((*interpreter* "bash -c"))
+    (is (string= "1 2 3
+" (shell-command "echo {1..3}"))))
+
+
+  (let ((*interpreter* "perl -e"))
+    (is (string= "4" (shell-command "print(1+3)")))))
 
