@@ -33,9 +33,9 @@
 (test subprocesses
   (finishes
     (format t "~& children : ~a" (subprocesses (getpid)))))
-(test tasks
+(test threads
   (finishes
-    (format t "~& threads : ~a" (tasks (getpid)))))
+    (format t "~& threads : ~a" (threads (getpid)))))
 
 (test shell
   (finishes (wait (print (shell '("ls" "-la")))))

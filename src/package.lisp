@@ -38,6 +38,7 @@
    #:fds
    #:subprocesses
    #:all-processes
-   #:tasks
+   #:threads
+   ;; trivial-shell
    #:shell-command
    #:*interpreter*))
