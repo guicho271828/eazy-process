@@ -6,7 +6,7 @@
 (in-package :cl-user)
 (defpackage :eazy-process.test
   (:use :cl
-        :eazy-process.impl
+        :eazy-process
         :cl-ppcre
         :fiveam
         :iterate :alexandria :cffi :optima)

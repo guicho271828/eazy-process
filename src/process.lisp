@@ -1,5 +1,5 @@
 
-(in-package :eazy-process.impl)
+(in-package :eazy-process)
 
 (defclass process ()
   ((#:pid :reader pid :initarg :pid)

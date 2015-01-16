@@ -4,7 +4,7 @@
 |#
 
 (in-package :cl-user)
-(defpackage :eazy-process.impl
+(defpackage :eazy-process
   (:use :cl :iterate :alexandria :optima :cl-ppcre :cffi)
   (:import-from :trivial-garbage :gc :finalize)
   (:import-from :iolib/syscalls
@@ -39,23 +39,3 @@
    #:subprocesses
    #:all-processes
    #:tasks))
-
-  
-(defpackage :eazy-process
-  (:use :cl :iterate :alexandria :optima :cl-ppcre :cffi :eazy-process.impl)
-  (:export
-   #:shell
-   #:%exec
-   #:process
-   #:getpid
-   #:pid
-   #:wait
-   ;; procfs
-   #:io
-   #:fd
-   #:proc
-   #:statm
-   #:stat
-   #:+stat-keywords+
-   #:+statm-keywords+
-   #:+io-keywords+))

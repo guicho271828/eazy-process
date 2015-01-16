@@ -1,4 +1,4 @@
-(in-package :eazy-process.impl)
+(in-package :eazy-process)
 
 #|
 
