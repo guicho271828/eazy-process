@@ -37,6 +37,14 @@
                  (:file :specials)
                  (:file :shell)
                  (:file :process)
-                 (:file :procfs))))
+                 (:file :procfs)))
+               (:module :compat
+                :serial t
+                :components
+                ((:file :trivial-shell)
+                 ;; (:file :inferior-shell)
+                 ;; (:file :sb-run-program)
+                 )))
+  :serial t
   :description ""
   :in-order-to ((test-op (load-op eazy-process.test))))

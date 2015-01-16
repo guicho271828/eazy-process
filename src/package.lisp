@@ -38,4 +38,5 @@
    #:fds
    #:subprocesses
    #:all-processes
-   #:tasks))
+   #:tasks
+   #:shell-command))

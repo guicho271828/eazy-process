@@ -99,3 +99,10 @@
 (test io (test-subfields #'io +io-keywords+))
 (test statm (test-subfields #'statm +statm-keywords+))
 (test stat (test-subfields #'stat (remove :state (remove :comm +stat-keywords+))))
+
+
+;; notice the newline!
+(test trivial-shell
+  (is (string= "10
+" (shell-command "expr 1 + 2 + 3 + 4"))))
+

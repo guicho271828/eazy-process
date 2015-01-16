@@ -4,17 +4,26 @@
 
 *  trivial-shell compatibility (almost)
 
-Goal: simple exec/fork interface compatible to trivial-shell except
-timeout-related stuff
+Trivial-shell is "A simple Common-Lisp interface to the underlying Operating System".
+It runs a shell command in a sequencial manner.
+In this compatibility version,
+the underlying interpreter no longer have to be a bourne-compatible-shell.
+e.g. you can use perl -e 'XXX'.
 
+Goal: simple interface compatible to trivial-shell @
 https://github.com/gwkkwg/trivial-shell.git
 
-trivial shell has the following interace
+API: there are a few modifications.
+Timeout-related stuff and EXIT are removed.
 
-trivial-shell:*BOURNE-COMPATIBLE-SHELL* 	trivial-shell:*SHELL-SEARCH-PATHS*
-trivial-shell:EXIT 	trivial-shell:GET-ENV-VAR
-trivial-shell:SHELL-COMMAND 	trivial-shell:TIMEOUT-ERROR
-trivial-shell:TIMEOUT-ERROR-COMMAND 	trivial-shell:WITH-TIMEOUT
+trivial-shell:*BOURNE-COMPATIBLE-SHELL* --- *interpreter*
+trivial-shell:GET-ENV-VAR               --- get-env-var
+trivial-shell:SHELL-COMMAND             --- shell-command
+trivial-shell:*SHELL-SEARCH-PATHS*      --- DEPRECATED
+trivial-shell:EXIT                      --- NOTINCLUDED
+trivial-shell:TIMEOUT-ERROR             --- NOTINCLUDED
+trivial-shell:TIMEOUT-ERROR-COMMAND     --- NOTINCLUDED
+trivial-shell:WITH-TIMEOUT              --- NOTINCLUDED
 
 |#
 
@@ -35,5 +44,16 @@ variable.
 ")
 
 (defun shell-command (command)
-  (format t "; ~a '~a'" *interpreter* command)
-  (apply #'shell (split "[ \t]+" *interpreter*) command))
+  "simple interface compatible to trivial-shell @
+https://github.com/gwkkwg/trivial-shell.git."
+  (format t "~&; ~a '~a'" *interpreter* command)
+  (let (p)
+    (unwind-protect
+         (progn
+           (setf p (shell (append (split "[ \t]+" *interpreter*) (list command))))
+           (with-open-file (s (fd-as-pathname p 1))
+             (iter (while (peek-char nil s nil nil))
+                   (collect (read-char s nil nil) result-type string))))
+      (when p
+        (wait p)))))
+
