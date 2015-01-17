@@ -62,7 +62,7 @@ If the FDSPEC is an integer <int fd>, it returns (nil . <int fd>)."
       (nil))
     ;; returns a file descriptor
     (ecase if-does-not-exist
-      (:create (logior mask isys:o-creat))
+      (:create (setf mask (logior mask isys:o-creat)))
       (:error)
       (nil))
     (cons nil (isys:open (namestring path) mask))))
