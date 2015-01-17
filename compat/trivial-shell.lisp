@@ -43,17 +43,43 @@ actual pathname of the intepreter can be resolved using PATH environment
 variable.
 ")
 
-(defun shell-command (command)
+(defun read-all-chars (s)
+  (iter (while (peek-char nil s nil nil))
+        (collect (read-char s nil nil) result-type string)))
+
+(defun shell-command (command &key (input ""))
   "simple interface compatible to trivial-shell @
-https://github.com/gwkkwg/trivial-shell.git."
+https://github.com/gwkkwg/trivial-shell.git.
+
+returns (values output error-output exit-status).
+The input is read from the :input key argument.
+"
   (format t "~&; ~a '~a'" *interpreter* command)
   (let (p)
-    (unwind-protect
+    (unwind-protect-case ()
          (progn
            (setf p (shell (append (split "[ \t]+" *interpreter*) (list command))))
-           (with-open-file (s (fd-as-pathname p 1))
-             (iter (while (peek-char nil s nil nil))
-                   (collect (read-char s nil nil) result-type string))))
-      (when p
-        (wait p)))))
+           (with-open-file (s (fd-as-pathname p 0)
+                              :direction :output
+                              :if-exists :overwrite)
+             ;; for debugging
+             #+nil
+             (let ((s (make-echo-stream s *standard-output*)))
+               (write-sequence input s))
+             (write-sequence input s))
+           (iolib.syscalls:close (fd p 0))
+           #+nil (print :pipe-closed)
+           (return-from shell-command
+             (values (prog1 
+                         (with-open-file (s (fd-as-pathname p 1)) (read-all-chars s))
+                       ;(print :wait-finished)
+                       )
+                     (prog1 
+                         (with-open-file (s (fd-as-pathname p 2)) (read-all-chars s))
+                       ;(print :wait-finished)
+                       )
+                     (prog1 (nth-value 1 (wait p :nohang))
+                       ;(print :wait-finished)
+                       ))))
+      (:abort (finalize-process p)))))
 

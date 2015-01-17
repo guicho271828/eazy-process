@@ -34,6 +34,8 @@
                 :serial t
                 :components
                 ((:file :package)
+                 (:file :execv)
+                 (:file :environ)
                  (:file :specials)
                  (:file :shell)
                  (:file :process)

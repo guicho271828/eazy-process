@@ -28,18 +28,115 @@ If the FDSPEC is an integer <int fd>, it returns (nil . <int fd>)."
   (declare (ignore x))
   (multiple-value-list (pipe)))
 
-(defun shell (argv &optional (fdspecs '#.+fdspecs-default+))
-  "Asynchronously execute `argv' using fork(2) and `execvp', returns a process structure object.
+(defun shell (argv &optional
+                     (fdspecs '#.+fdspecs-default+)
+                     (environments nil env-p)
+                     (search t))
+  (let ((fdspecs (mapcar #'canonicalize-fdspec fdspecs)))
+    (let ((pid (fork)))
+      (cond
+        ;; ((= -1 pid) ;; this is already handled by iolib, so don't care
+        ;;  (%failure command))
+        ((zerop pid)
+         ;; child
+         (iter (for i from 0)
+               (for (parent . child) in fdspecs)
+               (dup2 child i)
+               (when parent
+                 (iolib/syscalls:close parent)))
+         (%exec argv environments env-p search))
+        (t
+         ;; parent
+         (%make-process
+          pid
+          (iter (for i from 0)
+                (for (parent . child) in fdspecs)
+                (iolib/syscalls:close child)
+                (collect parent result-type vector))))))))
 
-ARGV is a sequence of strings. Each string is converted to
-null-terminated C strings char* ARGV and passed to execvp.
-The first element is also passed to execvp as the pathname of the executable.
+(defun %exec (argv env env-p search)
+  (if search
+      (if env-p
+          (%execvpe argv env)
+          (%execvp argv))
+      (if env-p
+          (%execve argv env)
+          (%execv argv))))
+
+;;;; 4 versions
+
+(defun make-c-char* (list-of-string)
+  (foreign-alloc :string
+                 :initial-contents list-of-string
+                 :null-terminated-p t))
+
+(defun make-c-env-char* (list)
+  (make-c-char*
+   (mapcar (lambda (pair)
+             (etypecase pair
+               (cons (format nil "~a=~a" (car pair) (cdr pair)))
+               (string pair)))
+           list)))
+
+(defun %execvpe (argv env)
+  (let (_argv _env)
+    (unwind-protect
+         (progn
+           (setf _argv (make-c-char* argv))
+           (setf _env (make-c-env-char* env))
+           (execvpe (first argv) _argv _env)) ; does not return on success
+      (when _argv (foreign-free _argv))
+      (when _env (foreign-free _env))
+      (foreign-funcall "_exit" :int -1))))
+
+(defun %execve (argv env)
+  (let (_argv _env)
+    (unwind-protect
+         (progn
+           (setf _argv (make-c-char* argv))
+           (setf _env (make-c-env-char* env))
+           (execve (first argv) _argv _env)) ; does not return on success
+      (when _argv (foreign-free _argv))
+      (when _env (foreign-free _env))
+      (foreign-funcall "_exit" :int -1))))
+
+(defun %execvp (argv)
+  (let (_argv)
+    (unwind-protect
+         (progn
+           (setf _argv (make-c-char* argv))
+           (execvp (first argv) _argv)) ; does not return on success
+      (when _argv (foreign-free _argv))
+      (foreign-funcall "_exit" :int -1))))
+
+(defun %execv (argv)
+  (let (_argv)
+    (unwind-protect
+         (progn
+           (setf _argv (make-c-char* argv))
+           (execv (first argv) _argv)) ; does not return on success
+      (when _argv (foreign-free _argv))
+      (foreign-funcall "_exit" :int -1))))
+
+;; Note:
+;; IMPL> (cffi::canonicalize-foreign-type :string)
+;; :POINTER
+
+;; Note: allocated memory is automatically freed and get reclaimed by the
+;; OS when exec is called successfully, because the data segment = heap is replaced.
+
+
+(setf (documentation 'shell 'function)
+      "Asynchronously execute `argv' using fork(2) and `execve'
+ family of system calls, returns a process structure object.
+
+ARGV is a sequence of strings. Each string is converted to null-terminated
+C strings char* ARGV and passed to execvp.  The first element is also
+passed to execvp as the pathname of the executable.
 
 FDSPECS is a sequence specifying how the child process should handle its output.
 For the documentation of fd-specifier see `+fdspecs-default+'.
-
-Ex.1 (:in :out :out)
-Ex.2 (5 :out 8)
+Example: (:in :out :out) , (5 :out 8)
 
 Each element in FDSPECS corresponds to each file descriptor of the child process.
 
@@ -50,56 +147,17 @@ the other end of the pipe is readable/writable from lisp from the process interf
 
 When an i-th element of FDSPECS is an integer j,
 then it should be the lisp end of a pipe connected to some other child process p2.
- (not the normal fd of the lisp process, like 0,1,2!)
+ (not the normal fd of the lisp process, like 0,1,2)
 The i-th fd of p1 is connected to this pipe,
 then p1 and p2 can exchange the data each other.
+When this happens, lisp process should not read from this pipe
+ (or the data will not be sent to the destination of the pipe).
+For that purpose, add a layer like `tee'.
 
-When this happens, lisp process is no longer able to see the contents of the transmission
-between p1 and p2, unless you specifically add a layer like `tee'.
+When ENVIRONMENT is specified, it is passed to execve/execvpe.
+It should be a list of strings (\"NAME1=VALUE1\" \"NAME2=VALUE2\")
+or an alist ((\"NAME1\" . \"VALUE1\") ...).
+When SEARCH is t, it uses execvp/execvpe. (==executable is searched through PATH)
 
 On error during system call, iolib/syscalls:syscall-error is signalled.
-"
-  (let ((fdspecs (mapcar #'canonicalize-fdspec fdspecs)))
-    (let ((pid (fork)))
-      ;; On success, the PID of the child process is returned in the parent,
-      ;; and 0 is returned in the child.  On failure, -1 is returned in the
-      ;; parent, no child process is created, and errno is set appropriately.
-      (cond
-        ;; ((= -1 pid) ;; this is already handled by iolib, so don't care
-        ;;  (%failure command))
-        ((zerop pid)
-         ;; child
-         ;; close the old stdin, overwrite stdin with in[0]
-         (iter (for i from 0)
-               (for (parent . child) in fdspecs)
-               (dup2 child i)
-               (when parent
-                 (iolib/syscalls:close parent)))
-         (%exec argv))
-        (t
-         ;; parent
-         (%make-process
-          pid
-          (iter (for i from 0)
-                (for (parent . child) in fdspecs)
-                (iolib/syscalls:close child)
-                (collect parent result-type vector))))))))
-
-(defun %exec (argv)
-  (let (_strings)
-    (unwind-protect
-         (progn
-           (setf _strings (foreign-alloc :string
-                                         :initial-contents argv
-                                         :null-terminated-p t))
-           (execvp (first argv) _strings)) ; does not return on success
-      (foreign-free _strings)
-      (foreign-funcall "_exit" :int -1))))
-
-;; Note:
-;; IMPL> (cffi::canonicalize-foreign-type :string)
-;; :POINTER
-
-;; Note: allocated memory is automatically freed and get reclaimed by the
-;; OS when exec is called successfully, because the data segment = heap is replaced.
-
+")

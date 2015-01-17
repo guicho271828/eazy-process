@@ -2,9 +2,9 @@
 (in-package :eazy-process)
 
 (defun fd-as-pathname (process fd)
-  "Access the fd as a file in the proc file system. Lisp can retrieve the
-output of the subprocess by opening this file."
-  (proc process :fd fd))
+  "Return the pathname in the proc file system.
+Lisp can retrieve the output of the subprocess by opening this file."
+  (proc :self :fd (fd process fd)))
 
 (defun pgid (process) (stat process :pgrp))
 (defun ppid (process) (stat process :ppid))

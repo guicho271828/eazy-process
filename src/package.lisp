@@ -9,7 +9,9 @@
   (:import-from :trivial-garbage :gc :finalize)
   (:import-from :iolib/syscalls
                 :getpid :getppid :getpgid
-                :fork :execvp
+                :fork
+                :execv ; :execve
+                :execvp ; :execvpe
                 ;; :exit
                 :pipe :dup2
                 :kill :waitpid)
@@ -41,4 +43,13 @@
    #:threads
    ;; trivial-shell
    #:shell-command
-   #:*interpreter*))
+   #:*interpreter*
+   #:finalize-process
+   #:environment
+   #:run-program
+   #:process-kill
+   #:process-wait
+   #:process-input
+   #:process-output
+   #:process-error
+   #:directions))
