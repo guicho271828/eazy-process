@@ -21,6 +21,51 @@ incomplete
   + [ ] inferior-shell
   + [ ] sb-ext:run-program
 
+* Usage
+
+#+BEGIN_SRC lisp
+  (multiple-value-bind (read write) (pipe)
+    (let* ((in "t/test-input")
+           (out "t/test-output")
+           (err "t/test-error")
+           (p1 (shell '("cat") `((,in :direction :input) ,write :out)))
+           (p2 (shell '("cat") `(,read
+                                 (,out :direction :output
+                                       :if-does-not-exist :create)
+                                 (,err :direction :output
+                                       :if-does-not-exist :create)))))
+      (wait p1)
+      (wait p2)))
+#+END_SRC
+
++ Async by default. no wait !
++ Even if you forget waiting the process, it is handled by trivial-garbage
+  --- when process object (p1 and p2) is GC-ed, the process is
+  automatically kill(2)ed and wait(2)ed. When the process is still alive
+  after SIGTERM, we finish it with SIGKILL.
+
+** inferior-shell interface
+
+=*bourne-comatible-shell*= is replaced with =*interpreter*=
+
+#+BEGIN_SRC lisp
+(shell-command "expr 1 + 2 + 3 + 4") ; --> "10\n"
+
+(let ((*interpreter* "bash -c"))
+  (shell-command "echo {1..3}")) ; --> "1 2 3\n"
+
+(let ((*interpreter* "perl -e"))
+ (shell-command "print(1+3)"))   ; --> "4"
+#+END_SRC
+
+** inferior-shell
+
+TBP
+
+** sb-ext:run-program
+
+TBP
+
 * Library selection
 
 I have searched for ways to manage the memory usage of processes in a
