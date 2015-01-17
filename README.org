@@ -21,6 +21,38 @@ incomplete
   + [ ] inferior-shell
   + [ ] sb-ext:run-program
 
+* Simple syntax
+
+#+BEGIN_SRC lisp
+(defun shell (argv &optional
+               (fdspecs '(:in :out :out))
+               (environments nil env-p)
+               (search t))
+    ...)
+#+END_SRC
+
+** Fdspecs
+
+: fdspecs := {fdspec}*
+: fdspec  := output | input | fd | openfilespec
+: output  := :output | :out | :o
+: input   := :input | :in | :i
+: fd      := <number>
+: openfilespec := (pathname &key direction if-exists if-does-not-exist)
+
+--- openfilespec is almost identical to the argument list of =OPEN= in ANSI
+spec, except ~:rename~ and ~:rename-and-delete~
+
+** Environments
+
+: environments := {environment}*
+: environment  := enc-pair | env-string
+: env-pair     := (name . value)
+: env-string   := "name=value"
+: name, value -- string
+
+=nil= means "inherit from the parent lisp"
+
 * Usage
 
 #+BEGIN_SRC lisp
@@ -40,9 +72,9 @@ incomplete
 
 + Async by default. no wait !
 + Even if you forget waiting the process, it is handled by trivial-garbage
-  --- when process object (p1 and p2) is GC-ed, the process is
-  automatically kill(2)ed and wait(2)ed. When the process is still alive
-  after SIGTERM, we finish it with SIGKILL.
+  --- when a process object (here, p1 and p2) is GC-ed, it is automatically
+  kill(2)ed and wait(2)ed. When the process is still alive after SIGTERM,
+  we also finish it with SIGKILL.
 
 ** inferior-shell interface
 
