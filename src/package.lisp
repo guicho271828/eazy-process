@@ -52,4 +52,5 @@
    #:process-input
    #:process-output
    #:process-error
-   #:directions))
+   #:directions
+   #:make-pipe))

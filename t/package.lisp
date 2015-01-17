@@ -110,6 +110,29 @@
     (with-open-file (s (fd-as-pathname p 1))
       (is (string= "guicho" (read-line s))))))
 
+(test explicit-pipe
+  (destructuring-bind (read write) (make-pipe)
+    (let* ((in (asdf:system-relative-pathname
+                 :eazy-process "t/test-input"))
+           (out (asdf:system-relative-pathname
+                 :eazy-process "t/test-output"))
+           (err (asdf:system-relative-pathname
+                 :eazy-process "t/test-error"))
+           (p1 (shell '("cat") `((,in :direction :input) ,write :out)))
+           (p2 (shell '("cat") `(,read
+                                 (,out :direction :output
+                                       :if-does-not-exist :create)
+                                 (,err :direction :output
+                                       :if-does-not-exist :create)))))
+      (wait p1)
+      (wait p2)
+      (is (probe-file out))
+      (is (probe-file err))
+      (when (probe-file err)
+        (delete-file err))
+      (when (probe-file out)
+        (delete-file out)))))
+
 ;;; posix procfs
 
 (defun test-subfields (fn fields)
