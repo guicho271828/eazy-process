@@ -10,9 +10,9 @@ incomplete
 + [X] Implementation-agnostic process handling / subshell invocation through cffi, fork, exec
   + pros: arbitrary number of fd's
   + pros: full power of pipe, mkfifo, sockets
-  + cons: implicit block of wait(2) by some host lisp implementations ?
+  + cons: implicit blocking of wait(2) by some host lisp implementations ?
 + [ ] Memory / Walltime management of the child processes
-  + [ ] +hierarchycal model+ --- granpa and gramma won't care
+  + [ ] +hierarchycal model+ --- granpa/gramma won't care
   + [ ] maybe also include network/IO restriction
 + [-] Compatibility layer to the existing State-of-the-Art libraries 
   + [X] trivial-shell
@@ -39,7 +39,7 @@ incomplete
 : openfilespec := (pathname &key direction if-exists if-does-not-exist)
 
 --- openfilespec is almost identical to the argument list of =OPEN= in ANSI
-spec, except ~:rename~ and ~:rename-and-delete~
+spec, however =:rename= and =:rename-and-delete= is not supported.
 
 ** Environments
 
@@ -49,7 +49,10 @@ spec, except ~:rename~ and ~:rename-and-delete~
 : env-string   := "name=value"
 : name, value -- string
 
-=nil= means "inherit from the parent lisp"
+If we omit the second argument =environments=,
+the subprocess inherits the environment of the parent lisp process.
+If you give =nil= explicitly, then it means the child process has no
+environment at all.
 
 * Usage
 
