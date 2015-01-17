@@ -74,6 +74,7 @@ If the FDSPEC is an integer <int fd>, it returns (nil . <int fd>)."
 (defun shell (argv &optional
                      (fdspecs '#.+fdspecs-default+)
                      (environments nil env-p)
+                     resources
                      (search t))
   (let ((fdspecs (mapcar #'canonicalize-fdspec fdspecs)))
     (let ((pid (fork)))
@@ -82,6 +83,8 @@ If the FDSPEC is an integer <int fd>, it returns (nil . <int fd>)."
         ;;  (%failure command))
         ((zerop pid)
          ;; child
+         (iter (for (kind . value) in resources)
+               (setf (rlimit kind) value))
          (iter (for i from 0)
                (for (parent . child) in fdspecs)
                (dup2 child i)
