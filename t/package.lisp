@@ -61,6 +61,7 @@
   (finishes
     (let ((p1 (shell '("sleep" "2"))))
       (wait p1))))
+
 (test read
   (let ((p1 (shell `("hostname"))))
     (with-open-file (s (fd-as-pathname p1 1))
@@ -101,6 +102,13 @@
                      (cons "MYVAL=2015" (environment)))))
       (with-open-file (s (fd-as-pathname p1 1))
         (is (= 2015 (read s)))))))
+
+(test file
+  (let ((p (shell '("cat") `((,(asdf:system-relative-pathname
+                                :eazy-process "t/test-input") :direction :input)
+                             :out :out))))
+    (with-open-file (s (fd-as-pathname p 1))
+      (is (string= "guicho" (read-line s))))))
 
 ;;; posix procfs
 

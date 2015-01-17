@@ -21,8 +21,55 @@ If the FDSPEC is an integer <int fd>, it returns (nil . <int fd>)."
     ((or :o :out :output)
      (multiple-value-bind (read write) (pipe)
        (cons read write)))
-    ((and fd (type fixnum))
-     (cons nil fd))))
+    ((type fixnum)
+     (cons nil fdspec))
+    ((list* (and path (type pathname)) options)
+     (apply #'%open path options))))
+
+
+;; if-does-not-exist---one of :error, :create, or nil.
+;; The default is
+;; :error if direction is :input or if-exists is :overwrite or :append
+;; :create if direction is :output or :io, and if-exists is neither :overwrite nor :append;
+;; or nil when direction is :probe. 
+
+(defun %open (path
+              &key
+                (direction :input)
+                (if-exists :error)
+                (if-does-not-exist
+                 (multiple-value-match (values direction if-exists)
+                   ((:input           _ )                                    :error)
+                   ((_                (or :overwrite :append))               :error)
+                   (((or :output :io) (and (not :overwrite) (not :append))) :create)
+                   ((:probe           _ )                                       nil))))
+  (multiple-value-bind (input output mask) ;; partly copied from sbcl
+      (ecase direction
+        (:input  (values   t nil isys:o-rdonly))
+        (:output (values nil   t isys:o-wronly))
+        (:io     (values   t   t isys:o-rdwr))
+        (:probe  (values   t nil isys:o-rdonly)))
+    (declare (ignorable input output))
+    (ecase if-exists
+      ((:new-version :error nil)
+       (setf mask (logior mask isys:o-excl)))
+      ;; ((:rename :rename-and-delete)
+      ;;  (setf mask (logior mask isys:o-creat)))
+      ((:supersede)
+       (setf mask (logior mask isys:o-trunc)))
+      (:append
+       (setf mask (logior mask isys:o-append)))
+      (nil))
+    ;; returns a file descriptor
+    (ecase if-does-not-exist
+      (:create (logior mask isys:o-creat))
+      (:error)
+      (nil))
+    (cons nil (isys:open (namestring path) mask))))
+
+;; O_APPEND O_ASYNC O_CLOEXEC O_CREAT O_DIRECT O_DIRECTORY O_DSYNC O_EXCL
+;; O_LARGEFILE O_NOATIME O_NOCTTY O_NOFOLLOW O_NONBLOCK O_NDELAY O_PATH O_SYNC
+;; O_TMPFILE O_TRUNC
 
 (defun make-pipe (x)
   (declare (ignore x))
