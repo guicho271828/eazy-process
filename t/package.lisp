@@ -111,7 +111,7 @@
       (is (string= "guicho" (read-line s))))))
 
 (test explicit-pipe
-  (destructuring-bind (read write) (make-pipe)
+  (multiple-value-bind (read write) (pipe)
     (let* ((in (asdf:system-relative-pathname :eazy-process "t/test-input"))
            (out (asdf:system-relative-pathname :eazy-process "t/test-output"))
            (err (asdf:system-relative-pathname :eazy-process "t/test-error"))
