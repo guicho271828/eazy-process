@@ -12,7 +12,7 @@ incomplete
   + pros: full power of pipe, mkfifo, sockets
   + cons: implicit block of wait(2) by some host lisp implementations ?
 + [ ] Memory / Walltime management of the child processes
-  + [ ] +hierarchycal model+ --- granpa's and gramma'S don't care
+  + [ ] +hierarchycal model+ --- granpa and gramma won't care
   + [ ] maybe also include network/IO restriction
 + [-] Compatibility layer to the existing State-of-the-Art libraries 
   + [X] trivial-shell
