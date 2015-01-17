@@ -135,6 +135,28 @@
       (when (probe-file out)
         (delete-file out)))))
 
+;; (test tee
+;;     (let* ((in (asdf:system-relative-pathname :eazy-process "t/test-input"))
+;;            (out (asdf:system-relative-pathname :eazy-process "t/test-output"))
+;;            (tee (asdf:system-relative-pathname :eazy-process "t/test-tee")))
+;;       (is (probe-file out))
+;;       (with-open-file (s out)
+;;         (string= "guicho" (read-line s)))
+;;       (when (probe-file out)
+;;         (delete-file out))
+;; 
+;;       (is (probe-file tee))
+;;       (with-open-file (s tee)
+;;         (string= "guicho" (read-line s)))
+;;       (when (probe-file tee)
+;;         (delete-file tee))))
+
+
+;; seq 3 | cat 1>&2 | cat > out
+;; the result will not be written into `out' ... but what does the second cat read from?
+;; Probably 1>&2 is implemented with `dup', not `dup2'. So the second cat is reading from
+;; an empty pipe.
+
 ;;; posix procfs
 
 (defun test-subfields (fn fields)
