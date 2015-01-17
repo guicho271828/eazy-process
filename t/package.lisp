@@ -112,12 +112,9 @@
 
 (test explicit-pipe
   (destructuring-bind (read write) (make-pipe)
-    (let* ((in (asdf:system-relative-pathname
-                 :eazy-process "t/test-input"))
-           (out (asdf:system-relative-pathname
-                 :eazy-process "t/test-output"))
-           (err (asdf:system-relative-pathname
-                 :eazy-process "t/test-error"))
+    (let* ((in (asdf:system-relative-pathname :eazy-process "t/test-input"))
+           (out (asdf:system-relative-pathname :eazy-process "t/test-output"))
+           (err (asdf:system-relative-pathname :eazy-process "t/test-error"))
            (p1 (shell '("cat") `((,in :direction :input) ,write :out)))
            (p2 (shell '("cat") `(,read
                                  (,out :direction :output
@@ -128,6 +125,11 @@
       (wait p2)
       (is (probe-file out))
       (is (probe-file err))
+      (with-open-file (s out)
+        (string= "guicho" (read-line s)))
+      (with-open-file (s err)
+        (signals error
+          (read-char s))) ; because it should write nothing to the error output
       (when (probe-file err)
         (delete-file err))
       (when (probe-file out)
