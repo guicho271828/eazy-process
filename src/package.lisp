@@ -13,11 +13,11 @@
                 :execv ; :execve
                 :execvp ; :execvpe
                 ;; :exit
+                :mkfifo :mkdtemp
                 :pipe :dup2
                 :kill :waitpid)
   (:export
    #:shell
-   #:%exec
    #:process
    #:getpid
    #:pid

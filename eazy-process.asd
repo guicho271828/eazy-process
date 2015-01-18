@@ -35,6 +35,7 @@
                 :components
                 ((:file :package)
                  (:file :execv)
+                 (:file :mktempfifo)
                  (:file :environ)
                  (:file :specials)
                  (:file :shell)
