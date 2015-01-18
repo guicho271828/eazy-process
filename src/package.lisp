@@ -53,4 +53,6 @@
    #:process-output
    #:process-error
    #:directions
-   #:pipe))
+   #:pipe
+   #:*rlimit-resources*
+   #:with-rlimit))

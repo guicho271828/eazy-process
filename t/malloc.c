@@ -18,7 +18,7 @@ int main(void)
   a = (int *)malloc(size);
   if(a == NULL) {
     printf("fail\n");
-    exit(EXIT_FAILURE);
+    return 1;
   }
   printf("allocated\n");
   for(i=0;i<length;i++){

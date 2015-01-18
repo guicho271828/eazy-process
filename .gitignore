@@ -9,3 +9,5 @@
 /t/run-program-test.tmp
 /t/malloc
 /t/spendtime
+/t/exit0
+/t/exit1

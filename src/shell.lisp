@@ -74,7 +74,6 @@ If the FDSPEC is an integer <int fd>, it returns (nil . <int fd>)."
 (defun shell (argv &optional
                      (fdspecs '#.+fdspecs-default+)
                      (environments nil env-p)
-                     resources
                      (search t))
   (let ((fdspecs (mapcar #'canonicalize-fdspec fdspecs)))
     (let ((pid (fork)))
@@ -83,14 +82,24 @@ If the FDSPEC is an integer <int fd>, it returns (nil . <int fd>)."
         ;;  (%failure command))
         ((zerop pid)
          ;; child
-         (iter (for (kind . value) in resources)
-               (setf (rlimit kind) value))
-         (iter (for i from 0)
-               (for (parent . child) in fdspecs)
-               (dup2 child i)
-               (when parent
-                 (iolib/syscalls:close parent)))
-         (%exec argv environments env-p search))
+         (handler-case
+             (progn
+               (iter (for kind from 0)
+                     (for value in-vector *rlimit-resources*)
+                     (when (plusp value)
+                       (setf (rlimit kind) value)))
+               (iter (for i from 0)
+                     (for (parent . child) in fdspecs)
+                     (dup2 child i)
+                     (when parent
+                       (iolib/syscalls:close parent)))
+               (%exec argv environments env-p search))
+           (isys:syscall-error (c)
+             (declare (ignorable c))
+             (foreign-funcall "_exit" :int 203))
+           (error (c)
+             (declare (ignorable c))
+             (foreign-funcall "_exit" :int 202))))
         (t
          ;; parent
          (%make-process
@@ -132,8 +141,7 @@ If the FDSPEC is an integer <int fd>, it returns (nil . <int fd>)."
            (setf _env (make-c-env-char* env))
            (execvpe (first argv) _argv _env)) ; does not return on success
       (when _argv (foreign-free _argv))
-      (when _env (foreign-free _env))
-      (foreign-funcall "_exit" :int -1))))
+      (when _env (foreign-free _env)))))
 
 (defun %execve (argv env)
   (let (_argv _env)
@@ -143,8 +151,7 @@ If the FDSPEC is an integer <int fd>, it returns (nil . <int fd>)."
            (setf _env (make-c-env-char* env))
            (execve (first argv) _argv _env)) ; does not return on success
       (when _argv (foreign-free _argv))
-      (when _env (foreign-free _env))
-      (foreign-funcall "_exit" :int -1))))
+      (when _env (foreign-free _env)))))
 
 (defun %execvp (argv)
   (let (_argv)
@@ -152,8 +159,7 @@ If the FDSPEC is an integer <int fd>, it returns (nil . <int fd>)."
          (progn
            (setf _argv (make-c-char* argv))
            (execvp (first argv) _argv)) ; does not return on success
-      (when _argv (foreign-free _argv))
-      (foreign-funcall "_exit" :int -1))))
+      (when _argv (foreign-free _argv)))))
 
 (defun %execv (argv)
   (let (_argv)
@@ -161,8 +167,7 @@ If the FDSPEC is an integer <int fd>, it returns (nil . <int fd>)."
          (progn
            (setf _argv (make-c-char* argv))
            (execv (first argv) _argv)) ; does not return on success
-      (when _argv (foreign-free _argv))
-      (foreign-funcall "_exit" :int -1))))
+      (when _argv (foreign-free _argv)))))
 
 ;; Note:
 ;; IMPL> (cffi::canonicalize-foreign-type :string)
@@ -205,5 +210,7 @@ It should be a list of strings (\"NAME1=VALUE1\" \"NAME2=VALUE2\")
 or an alist ((\"NAME1\" . \"VALUE1\") ...).
 When SEARCH is t, it uses execvp/execvpe. (==executable is searched through PATH)
 
-On error during system call, iolib/syscalls:syscall-error is signalled.
+On error during system call in the parent process, iolib/syscalls:syscall-error is signalled.
+In the child process, the system call failure result in error status 203.
+FIXME: this might not be good.
 ")

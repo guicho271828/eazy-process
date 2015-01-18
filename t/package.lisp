@@ -9,7 +9,7 @@
         :eazy-process
         :cl-ppcre
         :fiveam
-        :iterate :alexandria :cffi :optima)
+        :iterate :alexandria :cffi :optima :cl-rlimit)
   (:shadow :fail)
   (:export
    #:trivial-shell
@@ -134,19 +134,19 @@
            (err (asdf:system-relative-pathname :eazy-process "t/test-error")))
       (with-ensure-missing-files (err out)
         (let ((p1 (shell '("cat") `((,in :direction :input) ,write :out)))
-           (p2 (shell '("cat") `(,read
-                                 (,out :direction :output
-                                       :if-does-not-exist :create)
-                                 (,err :direction :output
-                                       :if-does-not-exist :create)))))
-      (wait p1)
-      (wait p2)
-      (is (probe-file out))
-      (is (probe-file err))
-      (with-open-file (s out)
-        (string= "guicho" (read-line s)))
-      (with-open-file (s err)
-        (signals error
+              (p2 (shell '("cat") `(,read
+                                    (,out :direction :output
+                                          :if-does-not-exist :create)
+                                    (,err :direction :output
+                                          :if-does-not-exist :create)))))
+          (wait p1)
+          (wait p2)
+          (is (probe-file out))
+          (is (probe-file err))
+          (with-open-file (s out)
+            (string= "guicho" (read-line s)))
+          (with-open-file (s err)
+            (signals error
               (read-char s)))))))) ; because it should write nothing to the error output
 
 
@@ -219,4 +219,84 @@
   (is (= 5 (parse-integer
             (shell-command "wc -c" :input "hello")
             :junk-allowed t))))
+
+
+
+;;; resource
+
+(defvar *testdir* (asdf:system-relative-pathname :eazy-process "t"))
+(defvar *exit0* (asdf:system-relative-pathname :eazy-process "t/exit0"))
+(defvar *exit1* (asdf:system-relative-pathname :eazy-process "t/exit1"))
+(defvar *malloc* (asdf:system-relative-pathname :eazy-process "t/malloc"))
+(defvar *spendtime* (asdf:system-relative-pathname :eazy-process "t/spendtime"))
+(defun make ()
+  (print (shell-command (format nil "make -C ~a" *testdir*)))
+  (is-true (probe-file *malloc*))
+  (is-true (probe-file *spendtime*)))
+
+(test exit
+  (with-ensure-missing-files (*exit0* *exit1*)
+    (make)
+    (finishes (print (multiple-value-list (shell-command *exit0*))))
+    (finishes (print (multiple-value-list (shell-command *exit1*))))
+    (let ((p (shell `(,(namestring *exit0*)))))
+      (destructuring-bind (exited exitstatus &rest args) 
+          (print (multiple-value-list (wait p)))
+        (is-true exited)
+        (is (= 0 exitstatus))))
+    (let ((p (shell `(,(namestring *exit1*)))))
+      (destructuring-bind (exited exitstatus &rest args) 
+          (print (multiple-value-list (wait p)))
+        (is-true exited)
+        (is (= 1 exitstatus))))))
+
+(test malloc
+  (with-ensure-missing-files (*malloc*)
+    (make)
+    (finishes (print (multiple-value-list (shell-command *malloc*))))
+    (let ((p (shell `(,(namestring *malloc*))))) ;; allocate 1GB
+      (destructuring-bind (exited exitstatus &rest args) 
+          (print (multiple-value-list (wait p)))
+        (is-true exited)
+        (is (= 0 exitstatus))))))
+
+(test malloc-limit
+  (with-ensure-missing-files (*malloc*)
+    (make)
+    (with-rlimit ((+rlimit-address-space+ 500000000)) ; 500MB
+      ;; with-rlimit does not affect the lisp process itself;
+      ;; The effect is applied to the child process only
+      (finishes (print (multiple-value-list (shell-command *malloc*))))
+      (let ((p (shell `(,(namestring *malloc*))))) ;; allocate 1GB
+        (destructuring-bind (exited exitstatus &rest args) 
+            (print (multiple-value-list (wait p)))
+          (is-true exited)
+          (is (= 1 exitstatus)))))))
+
+(test spendtime
+  ;; (sleep 15)
+  (with-ensure-missing-files (*spendtime*)
+    (make)
+    (finishes (print (shell-command *spendtime*)))
+    (let ((p (shell `(,(namestring *spendtime*))))) ;; wait 10sec
+      (destructuring-bind (exited exitstatus ifsignalled termsig &rest args) 
+          (print (multiple-value-list (wait p)))
+        (is-true exited)
+        (is (= 0 exitstatus))
+        (is-false ifsignalled)
+        (is-false termsig)))))
+
+(test spendtime-limit
+  ;; (sleep 15)
+  (with-ensure-missing-files (*spendtime*)
+    (make)
+    (with-rlimit ((+rlimit-cpu-time+ 3)) ; 3 sec
+      (finishes (print (shell-command *spendtime*)))
+      (let ((p (shell `(,(namestring *spendtime*)))))
+        (destructuring-bind (exited exitstatus ifsignalled termsig &rest args) 
+            (print (multiple-value-list (wait p)))
+          (is-false exited)
+          (is-false exitstatus)
+          (is-true ifsignalled)
+          (is (= 24 termsig)))))))
 

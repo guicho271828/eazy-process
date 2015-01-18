@@ -44,7 +44,7 @@ then with sigkill."
           (waitpid pid 0)))
     (iolib.syscalls:syscall-error (c)
       (declare (ignore c))
-      (format t "~&; Process ~a does not exist!~&" pid)
+      ;; (format t "~&; Process ~a does not exist!~&" pid)
       nil)))
 
 (defun %close-streams (streams)
@@ -61,22 +61,47 @@ then with sigkill."
 ;; Note: without calling waitpid, the child becomes a zombie process.
 ;; child process should be waited when the process object is GC'ed.
 
+(declaim (inline wait))
 (defun wait (process &optional option)
   "option is one of :nohang, :untraced, :continued.
-Returns (values (boolean exited-p) (integer exitstatus) (integer waitpid-status)).
-For the further investigation of waitpid-status, use iolib/syscalls:WIFSIGNALED etc."
-  (let ((status
-         (waitpid (pid process)
-                  (case option
-                    (:nohang iolib/syscalls:WNOHANG)
-                    (:untraced iolib/syscalls:WUNTRACED)
-                    (:continued iolib/syscalls:WCONTINUED)
-                    (t 0)))))
-    ;; lisp does not open any of these files
-    ;; (map nil (lambda (fd) (when fd (iolib/syscalls:close fd))) (fds process))
-    (values (iolib/syscalls:WIFEXITED status)
-            (iolib/syscalls:WEXITSTATUS status)
-            status)))
+Returns many values:
+ (boolean ifexited)
+ (integer exitstatus)
+ (boolean ifsignalled)
+ (integer termsig)
+ (boolean coredump)
+ (boolean ifstopped)
+ (integer stopsig)
+ (boolean ifcontinued).
+
+When the value is inappropriate, some integer values may return NIL.
+For details see man wait(2)."
+  (multiple-value-bind (success status)
+      (waitpid (pid process)
+               (case option
+                 (:nohang iolib/syscalls:WNOHANG)
+                 (:untraced iolib/syscalls:WUNTRACED)
+                 (:continued iolib/syscalls:WCONTINUED)
+                 (t 0)))
+    (when (minusp success)
+      (error 'isys:syscall-error
+             :message "waitpid failed"
+             :code (isys:errno)
+             :syscall "waitpid"))
+    (values
+     (iolib/syscalls:WIFEXITED status)
+     (when (iolib/syscalls:WIFEXITED status)
+       (iolib/syscalls:WEXITSTATUS status))
+     (iolib/syscalls:WIFSIGNALED status)
+     (when (iolib/syscalls:WIFSIGNALED status)
+       (iolib/syscalls:WTERMSIG status))
+     (when (iolib/syscalls:WIFSIGNALED status)
+       (iolib/syscalls:WCOREDUMP status))
+     (iolib/syscalls:WIFSTOPPED status)
+     (when (iolib/syscalls:WIFSTOPPED status)
+       (iolib/syscalls:WSTOPSIG status))
+     (iolib/syscalls:WIFCONTINUED status)
+     status)))
 
 (defun fd (process n)
   "Returns the file descriptor of the lisp process.

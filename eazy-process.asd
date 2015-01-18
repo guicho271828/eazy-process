@@ -39,6 +39,7 @@
                  (:file :specials)
                  (:file :shell)
                  (:file :process)
+                 (:file :resources)
                  #+linux
                  (:module :linux
                           :serial t

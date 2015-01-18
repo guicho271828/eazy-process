@@ -54,32 +54,35 @@ https://github.com/gwkkwg/trivial-shell.git.
 returns (values output error-output exit-status).
 The input is read from the :input key argument.
 "
-  (format t "~&; ~a '~a'" *interpreter* command)
-  (let (p)
-    (unwind-protect-case ()
-         (progn
-           (setf p (shell (append (split "[ \t]+" *interpreter*) (list command))))
-           (with-open-file (s (fd-as-pathname p 0)
-                              :direction :output
-                              :if-exists :overwrite)
-             ;; for debugging
-             #+nil
-             (let ((s (make-echo-stream s *standard-output*)))
-               (write-sequence input s))
-             (write-sequence input s))
-           (iolib.syscalls:close (fd p 0))
-           #+nil (print :pipe-closed)
-           (return-from shell-command
-             (values (prog1 
-                         (with-open-file (s (fd-as-pathname p 1)) (read-all-chars s))
-                       ;(print :wait-finished)
-                       )
-                     (prog1 
-                         (with-open-file (s (fd-as-pathname p 2)) (read-all-chars s))
-                       ;(print :wait-finished)
-                       )
-                     (prog1 (nth-value 1 (wait p :nohang))
-                       ;(print :wait-finished)
-                       ))))
-      (:abort (finalize-process p)))))
+  (let ((command (if (pathnamep command)
+                     (namestring command)
+                     command)))
+    (format t "~&; ~a '~a'" *interpreter* command)
+    (let (p)
+      (unwind-protect-case ()
+          (progn
+            (setf p (shell (append (split "[ \t]+" *interpreter*) (list command))))
+            (with-open-file (s (fd-as-pathname p 0)
+                               :direction :output
+                               :if-exists :overwrite)
+              ;; for debugging
+              #+nil
+              (let ((s (make-echo-stream s *standard-output*)))
+                (write-sequence input s))
+              (write-sequence input s))
+            (iolib.syscalls:close (fd p 0))
+            #+nil (print :pipe-closed)
+            (return-from shell-command
+              (values (prog1 
+                          (with-open-file (s (fd-as-pathname p 1)) (read-all-chars s))
+                                        ;(print :wait-finished)
+                        )
+                      (prog1 
+                          (with-open-file (s (fd-as-pathname p 2)) (read-all-chars s))
+                                        ;(print :wait-finished)
+                        )
+                      (prog1 (nth-value 1 (wait p))
+                                        ;(print :wait-finished)
+                        ))))
+        (:abort (finalize-process p))))))
 
