@@ -110,12 +110,30 @@
     (with-open-file (s (fd-as-pathname p 1))
       (is (string= "guicho" (read-line s))))))
 
+(defun ensure-missing (file)
+  (when (probe-file file) (delete-file file)))
+
+(defmacro with-ensure-missing-file ((file) &body body)
+  (once-only (file)
+    `(unwind-protect
+          (progn (ensure-missing ,file)
+                 ,@body)
+       (ensure-missing ,file))))
+
+(defmacro with-ensure-missing-files (files &body body)
+  (if files
+      `(with-ensure-missing-file (,(car files))
+         (with-ensure-missing-files ,(cdr files)
+           ,@body))
+      `(progn ,@body)))
+
 (test explicit-pipe
   (multiple-value-bind (read write) (pipe)
     (let* ((in (asdf:system-relative-pathname :eazy-process "t/test-input"))
            (out (asdf:system-relative-pathname :eazy-process "t/test-output"))
-           (err (asdf:system-relative-pathname :eazy-process "t/test-error"))
-           (p1 (shell '("cat") `((,in :direction :input) ,write :out)))
+           (err (asdf:system-relative-pathname :eazy-process "t/test-error")))
+      (with-ensure-missing-files (err out)
+        (let ((p1 (shell '("cat") `((,in :direction :input) ,write :out)))
            (p2 (shell '("cat") `(,read
                                  (,out :direction :output
                                        :if-does-not-exist :create)
@@ -129,11 +147,8 @@
         (string= "guicho" (read-line s)))
       (with-open-file (s err)
         (signals error
-          (read-char s))) ; because it should write nothing to the error output
-      (when (probe-file err)
-        (delete-file err))
-      (when (probe-file out)
-        (delete-file out)))))
+              (read-char s)))))))) ; because it should write nothing to the error output
+
 
 ;; (test tee
 ;;     (let* ((in (asdf:system-relative-pathname :eazy-process "t/test-input"))
@@ -150,12 +165,13 @@
 ;;         (string= "guicho" (read-line s)))
 ;;       (when (probe-file tee)
 ;;         (delete-file tee))))
-
-
 ;; seq 3 | cat 1>&2 | cat > out
 ;; the result will not be written into `out' ... but what does the second cat read from?
 ;; Probably 1>&2 is implemented with `dup', not `dup2'. So the second cat is reading from
 ;; an empty pipe.
+
+
+
 
 ;;; posix procfs
 
