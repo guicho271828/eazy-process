@@ -7,3 +7,4 @@
 *~
 .#*
 /t/run-program-test.tmp
+/t/malloc
