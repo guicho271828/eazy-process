@@ -59,7 +59,7 @@ If the FDSPEC is an integer <int fd>, it returns (nil . <int fd>)."
        (setf mask (logior mask isys:o-trunc)))
       (:append
        (setf mask (logior mask isys:o-append)))
-      (nil))
+      ((:overwrite nil) nil))
     ;; returns a file descriptor
     (ecase if-does-not-exist
       (:create (setf mask (logior mask isys:o-creat)))
