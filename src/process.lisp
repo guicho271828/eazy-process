@@ -25,14 +25,15 @@ Properties of a process are accessible through several functions."))
                                  :fds fds
                                  :streams streams)))
     (finalize process
-              (lambda () (%finalize-process pid 15 streams)))
+              (lambda () (%finalize-process pid 15 fds streams)))
     process))
 
-(defun %finalize-process (pid sig streams)
+(defun %finalize-process (pid sig fds streams)
   "True finalizer of a process object. However,
 This function should not contain reference to the process itself
 because it prevents process object from GC-ing."
-  (%close-streams streams)
+  (map nil #'%close-stream-safely streams)
+  (map nil #'%close-fd-safely fds)
   (handler-case ; in case pid does not exist
       (when (zerop (waitpid pid iolib/syscalls:WNOHANG))
         (format t "~&; Killing ~a~&" pid)
@@ -46,18 +47,24 @@ because it prevents process object from GC-ing."
       ;; (format t "~&; Process ~a does not exist!~&" pid)
       nil)))
 
-(defun %close-streams (streams)
-  (map nil
-       (lambda (s)
+(defun %close-stream-safely (s)
          (when (streamp s)
            ;; flush-output will cause SIGPIPE when the process is dead?
            (close s :abort (output-stream-p s))))
-       streams))
+
+(defun %close-fd-safely (fd)
+  (when fd
+    (handler-case
+        (isys:close fd)
+      (isys:syscall-error (c)
+        (unless (= isys:EBADF (isys:code-of c))
+          (signal c))))))
+
 
 (defun finalize-process (process &optional (sig 15))
   "Waitpid the process. If the process is alive, kill it with SIG first,
 then with SIGKILL."
-  (%finalize-process (pid process) sig (streams process)))
+  (%finalize-process (pid process) sig (fds process) (streams process)))
 
 ;; Note: without calling waitpid, the child becomes a zombie process.
 ;; child process should be waited when the process object is GC'ed.
