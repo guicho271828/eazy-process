@@ -11,9 +11,9 @@ incomplete
   + pros: arbitrary number of fd's
   + pros: full power of pipe, mkfifo, sockets
   + cons: implicit blocking of wait(2) by some host lisp implementations ?
-+ [ ] Memory / Walltime management of the child processes
-  + [ ] +hierarchycal model+ --- granpa/gramma won't care
-  + [ ] maybe also include network/IO restriction
++ [X] Memory / Walltime management of the child processes
+  + +hierarchical model+ --- grandpa/gram-ma won't care
+  + maybe also include network/IO restriction
 + [-] Compatibility layer to the existing State-of-the-Art libraries 
   + [X] trivial-shell
   + [ ] inferior-shell
@@ -39,12 +39,12 @@ incomplete
 : openfilespec := (pathname &key direction if-exists if-does-not-exist)
 
 --- openfilespec is almost identical to the argument list of =OPEN= in ANSI
-spec, however =:rename= and =:rename-and-delete= is not supported.
+spec, however =:rename= and =:rename-and-delete= are not supported.
 
 ** Environments
 
 : environments := {environment}*
-: environment  := enc-pair | env-string
+: environment  := env-pair | env-string
 : env-pair     := (name . value)
 : env-string   := "name=value"
 : name, value -- string
@@ -53,6 +53,7 @@ If we omit the second argument =environments=,
 the subprocess inherits the environment of the parent lisp process.
 If you give =nil= explicitly, then it means the child process has no
 environment at all.
+
 
 * Usage
 
@@ -77,9 +78,55 @@ environment at all.
   kill(2)ed and wait(2)ed. When the process is still alive after SIGTERM,
   we also finish it with SIGKILL.
 
-** inferior-shell interface
+** Reading the output
 
-=*bourne-comatible-shell*= is replaced with =*interpreter*=
+On systems that implements procfs (well this should be fixed :( ),
+Output of the subprocess can be read from =fd-as-pathname=.
+
+#+BEGIN_SRC lisp
+(test read
+  (let ((p1 (shell `("hostname"))))
+    (with-open-file (s (fd-as-pathname p1 1))
+      (is (string= (machine-instance)
+                   (read-line s))))))
+#+END_SRC
+
+*EAZY-PROCESS sticks with file descriptors* and do not provide
+the interface to the common lisp stream.
+Well, this could be changed in the future
+
+** Resource management
+
+Partly adopted the cl-rlimit interface.
+
+Macro =with-rlimit= dynamically binds/appends/overwrites the current rlimit
+resource limitation. Not in a destructive manner -- new binding is
+created for each macro, and can be nested.
+
+As noted in =*rlimit-resources*= docstring, this does not affect the lisp process itself.
+It only affect the new child processes spawned by =shell=.
+
+Example below shows the usecase where =*spendtime*= contains a path to a
+simple C program that busy-waits for 10 seconds. The execution is
+terminated in 3 seconds. TERMSIG is set to 24 because the program
+is killed by SIGXCPU.
+
+#+BEGIN_SRC lisp
+ (with-rlimit ((+rlimit-cpu-time+ 3)) ; 3 sec
+   (let ((p (shell `(,(namestring *spendtime*))))) 
+     (multiple-value-bind
+            (exited exitstatus ifsignalled termsig ...)
+            (wait p)
+       (is-false exited)
+       (is-false exitstatus)
+       (is-true ifsignalled)
+       (is (= 24 termsig)))))
+#+END_SRC
+
+* Compatibility Layers
+** trivial-shell compatibility
+
+=*bourne-compatible-shell*= is replaced with =*interpreter*=
 
 #+BEGIN_SRC lisp
 (shell-command "expr 1 + 2 + 3 + 4") ; --> "10\n"
@@ -91,11 +138,14 @@ environment at all.
  (shell-command "print(1+3)"))   ; --> "4"
 #+END_SRC
 
-** inferior-shell
+Since this compatibility layer is implemented with =shell=,
+resource binding established by =with-rlimit= is in effect.
+
+** inferior-shell compatibility
 
 TBP
 
-** sb-ext:run-program
+** sb-ext:run-program compatibility
 
 TBP
 
@@ -108,7 +158,7 @@ hierarchycal manner while keeping the implementation/OS-independency.
    other people running Mac OS X on their fancy laptops (well, I'm a
    dedicated fan of thinkpad X-series since X20...)
 2. Procfs, in pathnames. Rejected because it seemed slow.
-3. libprocps. Rejected because the library design is owful, as described in
+3. libprocps. Rejected because the library design is awful, as described in
    https://gitorious.org/procps/pages/The_libprocps_redesign
 4. Now towards hwloc. It is used by htop, torque, OpenMPI. Holds wide
    variety of unix platforms, including Darwin and windows. --- it seems
@@ -128,7 +178,7 @@ Also, it depends on the following libraries:
 
 + iterate by *Jonathan Amsterdam* :
     Jonathan Amsterdam's iterator/gatherer/accumulator facility
-+ alexandria by ** :
++ Alexandria by ** :
     Alexandria is a collection of portable public domain utilities.
 + cffi by *James Bielman  <jamesjb@jamesjb.com>* :
     The Common Foreign Function Interface
