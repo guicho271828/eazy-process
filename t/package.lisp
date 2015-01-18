@@ -1,7 +1,6 @@
-#|
-  This file is a part of eazy-process project.
-  Copyright (c) 2014 Masataro Asai (guicho2.71828@gmail.com)
-|#
+
+;;; This file is a part of eazy-process project.
+;;; Copyright (c) 2014 Masataro Asai (guicho2.71828@gmail.com)
 
 (in-package :cl-user)
 (defpackage :eazy-process.test
@@ -68,9 +67,8 @@
       (is (string= (machine-instance)
                    (read-line s))))))
 
-(test manual-pipe-and-gc
+(test manual-pipe
   (let (pid1 pid2)
-    (trivial-garbage:gc :full t :verbose t)
     (finishes
       (let* ((p1 (shell `("ps" "-ef")))
              (p2 (shell `("cat")  (list (fd p1 1) :out :out))))
@@ -79,21 +77,24 @@
         (with-open-file (s (fd-as-pathname p2 1))
           (print (read-line s))
           (print (read-line s)))
-        (setf pid1 (pid p1) pid2 (pid p2))))
+        (setf pid1 (pid p1) pid2 (pid p2))))))
     
-    ;; (sleep 10)
-    ;; ;; calls wait(2) on GC
-    ;; (format t "~&GC ing")
-    ;; (trivial-garbage:gc :full t :verbose t)
-    ;; (sleep 10)
-    ;; ;; because the process should be killed and waitpid'ed
-    ;; (signals error
-    ;;   ;; iolib.syscalls:syscall-error
-    ;;   (iolib.syscalls:waitpid pid1 iolib/syscalls:WNOHANG))
-    ;; (signals error
-    ;;   ;;iolib.syscalls:syscall-error
-    ;;   (iolib.syscalls:waitpid pid2 iolib/syscalls:WNOHANG))
-    ))
+#+nil
+(progn
+  (defvar *pid*)
+  (test zombie
+    ;; not waited
+    (setf *pid* (pid (shell `("uname")))))
+
+  (test (gc :depends-on zombie)  
+    (format t "~&GC ing")
+    ;; GC should invoke the finalizer, which in tern calls kill(2) and wait(2)
+    (trivial-garbage:gc :full t :verbose t)
+    (sleep 10)
+    ;; because the process should be already killed and waitpid'ed
+    (signals iolib.syscalls:syscall-error
+      ;; iolib.syscalls:syscall-error
+      (iolib.syscalls:waitpid *pid* 0))))
 
 (test environment
   (finishes
@@ -139,38 +140,38 @@
                                           :if-does-not-exist :create)
                                     (,err :direction :output
                                           :if-does-not-exist :create)))))
+          (print :waiting-p1)
           (wait p1)
+          (print :waiting-p2)
           (wait p2)
           (is (probe-file out))
           (is (probe-file err))
           (with-open-file (s out)
-            (string= "guicho" (read-line s)))
+            (is (string= "guicho" (read-line s))))
           (with-open-file (s err)
             (signals error
               (read-char s)))))))) ; because it should write nothing to the error output
 
+#+nil
+(test tee
+    (let* ((in (asdf:system-relative-pathname :eazy-process "t/test-input"))
+           (out (asdf:system-relative-pathname :eazy-process "t/test-output"))
+           (tee (asdf:system-relative-pathname :eazy-process "t/test-tee")))
+      (is (probe-file out))
+      (with-open-file (s out)
+        (string= "guicho" (read-line s)))
+      (when (probe-file out)
+        (delete-file out))
 
-;; (test tee
-;;     (let* ((in (asdf:system-relative-pathname :eazy-process "t/test-input"))
-;;            (out (asdf:system-relative-pathname :eazy-process "t/test-output"))
-;;            (tee (asdf:system-relative-pathname :eazy-process "t/test-tee")))
-;;       (is (probe-file out))
-;;       (with-open-file (s out)
-;;         (string= "guicho" (read-line s)))
-;;       (when (probe-file out)
-;;         (delete-file out))
-;; 
-;;       (is (probe-file tee))
-;;       (with-open-file (s tee)
-;;         (string= "guicho" (read-line s)))
-;;       (when (probe-file tee)
-;;         (delete-file tee))))
+      (is (probe-file tee))
+      (with-open-file (s tee)
+        (string= "guicho" (read-line s)))
+      (when (probe-file tee)
+        (delete-file tee))))
 ;; seq 3 | cat 1>&2 | cat > out
 ;; the result will not be written into `out' ... but what does the second cat read from?
 ;; Probably 1>&2 is implemented with `dup', not `dup2'. So the second cat is reading from
 ;; an empty pipe.
-
-
 
 
 ;;; posix procfs
