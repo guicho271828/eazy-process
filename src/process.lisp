@@ -29,10 +29,9 @@ Properties of a process are accessible through several functions."))
     process))
 
 (defun %finalize-process (pid sig streams)
-  "Waitpid the process. If the process is alive, kill it with SIG first,
-then with sigkill."
-  ;; This function should not contain reference to the process itself
-  ;; because it prevents process object from GC-ing.
+  "True finalizer of a process object. However,
+This function should not contain reference to the process itself
+because it prevents process object from GC-ing."
   (%close-streams streams)
   (handler-case ; in case pid does not exist
       (when (zerop (waitpid pid iolib/syscalls:WNOHANG))
@@ -56,6 +55,8 @@ then with sigkill."
        streams))
 
 (defun finalize-process (process &optional (sig 15))
+  "Waitpid the process. If the process is alive, kill it with SIG first,
+then with SIGKILL."
   (%finalize-process (pid process) sig (streams process)))
 
 ;; Note: without calling waitpid, the child becomes a zombie process.
