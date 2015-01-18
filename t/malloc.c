@@ -12,9 +12,9 @@ int main(void)
   int* a;
   int i;
   printf("Try to allocate 1GB memory\n");
-  printf("size: %d\n",size);
+  printf("size: %d bytes\n",size);
   printf("size of int: %d\n",(int)(sizeof (int)));
-  printf("allocated: %d\n",length);
+  printf("length of array: %d\n",length);
   a = (int *)malloc(size);
   if(a == NULL) {
     printf("fail\n");

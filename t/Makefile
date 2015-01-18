@@ -1,3 +1,6 @@
 
-all: malloc.c
-	gcc malloc.c -o malloc
+all: malloc spendtime
+
+%: %.c
+	gcc $< -o $@
+
