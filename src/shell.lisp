@@ -11,25 +11,23 @@ subshell implemented with fork-execvp
 
 
 (defun canonicalize-fdspec (fdspec)
-  "Take an fd-specifier and return a cons.
-When fd-specifier is a symbol, the return value is (<int parent-fd> . <int child-fd>),
-where parent-fd and child-fd are the file descripters newly created by pipe(2).
-This is different from what pipe(2) directly provides,
-because for pipe(&fd,0) fd[0] is always the read end and fd[1] the write end.
-
-If the FDSPEC is an integer <int fd>, it returns (nil . <int fd>)."
+  "Take an fd-specifier and return a cons of (parent . child) where both
+parent and child are closures of 1 arg, the index of file descriptor.
+Each function suggests a job that should be done in the context of
+parent/child process."
   (ematch fdspec
     ((or :i :in :input)
      (multiple-value-bind (read write) (pipe)
-       (cons write read)))
+       (cons (lambda (i) (isys:close read) write)
+             (lambda (i) (isys:close write) (dup2 read i)))))
     ((or :o :out :output)
      (multiple-value-bind (read write) (pipe)
-       (cons read write)))
+       (cons (lambda (i) (isys:close write) read)
+             (lambda (i) (isys:close read) (dup2 write i)))))
     ((type fixnum)
-     (cons nil fdspec))
+     (cons (constantly nil) (lambda (i) (dup2 fdspec i))))
     ((list* (and path (type pathname)) options)
      (apply #'%open path options))))
-
 
 
 (defun %open (path
@@ -69,7 +67,9 @@ If the FDSPEC is an integer <int fd>, it returns (nil . <int fd>)."
       (:create (setf mask (logior mask isys:o-creat)))
       (:error)
       (nil))
-    (cons nil (isys:open (namestring path) mask))))
+    (cons (constantly nil)
+          (lambda (i)
+            (dup2 (isys:open (namestring path) mask) i)))))
 
 ;;; shell
 
@@ -83,7 +83,18 @@ If the FDSPEC is an integer <int fd>, it returns (nil . <int fd>)."
         ;; ((= -1 pid) ;; this is already handled by iolib, so don't care
         ;;  (%failure command))
         ((zerop pid)
-         ;; child
+         (%in-child fdspecs argv environments env-p search))
+        (t
+         (%in-parent fdspecs pid))))))
+
+(defun %in-parent (fdspecs pid)
+  (%make-process
+   pid
+   (iter (for i from 0)
+         (for (parent . child) in fdspecs)
+         (collect (funcall parent i) result-type vector))))
+
+(defun %in-child (fdspecs argv environments env-p search)
          (handler-case
              (progn
                (iter (for kind from 0)
@@ -92,9 +103,7 @@ If the FDSPEC is an integer <int fd>, it returns (nil . <int fd>)."
                        (setf (rlimit kind) value)))
                (iter (for i from 0)
                      (for (parent . child) in fdspecs)
-                     (dup2 child i)
-                     (when parent
-                       (iolib/syscalls:close parent)))
+              (funcall child i))
                (%exec argv environments env-p search))
            (isys:syscall-error (c)
              (declare (ignorable c))
@@ -102,14 +111,6 @@ If the FDSPEC is an integer <int fd>, it returns (nil . <int fd>)."
            (error (c)
              (declare (ignorable c))
              (foreign-funcall "_exit" :int 202))))
-        (t
-         ;; parent
-         (%make-process
-          pid
-          (iter (for i from 0)
-                (for (parent . child) in fdspecs)
-                (iolib/syscalls:close child)
-                (collect parent result-type vector))))))))
 
 (defun %exec (argv env env-p search)
   (if search
