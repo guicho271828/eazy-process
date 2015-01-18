@@ -1,3 +1,5 @@
+;;; shell.lisp
+
 (in-package :eazy-process)
 
 #|
@@ -5,6 +7,8 @@
 subshell implemented with fork-execvp
 
 |#
+;;; preprocessing
+
 
 (defun canonicalize-fdspec (fdspec)
   "Take an fd-specifier and return a cons.
@@ -27,11 +31,6 @@ If the FDSPEC is an integer <int fd>, it returns (nil . <int fd>)."
      (apply #'%open path options))))
 
 
-;; if-does-not-exist---one of :error, :create, or nil.
-;; The default is
-;; :error if direction is :input or if-exists is :overwrite or :append
-;; :create if direction is :output or :io, and if-exists is neither :overwrite nor :append;
-;; or nil when direction is :probe. 
 
 (defun %open (path
               &key
@@ -43,6 +42,11 @@ If the FDSPEC is an integer <int fd>, it returns (nil . <int fd>)."
                    ((_                (or :overwrite :append))               :error)
                    (((or :output :io) (and (not :overwrite) (not :append))) :create)
                    ((:probe           _ )                                       nil))))
+  ;; if-does-not-exist---one of :error, :create, or nil.
+  ;; The default is
+  ;; :error if direction is :input or if-exists is :overwrite or :append
+  ;; :create if direction is :output or :io, and if-exists is neither :overwrite nor :append;
+  ;; or nil when direction is :probe. 
   (multiple-value-bind (input output mask) ;; partly copied from sbcl
       (ecase direction
         (:input  (values   t nil isys:o-rdonly))
@@ -67,9 +71,7 @@ If the FDSPEC is an integer <int fd>, it returns (nil . <int fd>)."
       (nil))
     (cons nil (isys:open (namestring path) mask))))
 
-;; O_APPEND O_ASYNC O_CLOEXEC O_CREAT O_DIRECT O_DIRECTORY O_DSYNC O_EXCL
-;; O_LARGEFILE O_NOATIME O_NOCTTY O_NOFOLLOW O_NONBLOCK O_NDELAY O_PATH O_SYNC
-;; O_TMPFILE O_TRUNC
+;;; shell
 
 (defun shell (argv &optional
                      (fdspecs '#.+fdspecs-default+)
@@ -118,7 +120,7 @@ If the FDSPEC is an integer <int fd>, it returns (nil . <int fd>)."
           (%execve argv env)
           (%execv argv))))
 
-;;;; 4 versions
+;;; 4 versions of exec
 
 (defun make-c-char* (list-of-string)
   (foreign-alloc :string
@@ -176,6 +178,8 @@ If the FDSPEC is an integer <int fd>, it returns (nil . <int fd>)."
 ;; Note: allocated memory is automatically freed and get reclaimed by the
 ;; OS when exec is called successfully, because the data segment = heap is replaced.
 
+
+;;; documentation
 
 (setf (documentation 'shell 'function)
       "Asynchronously execute `argv' using fork(2) and `execve'
