@@ -21,28 +21,32 @@
 
 * Usage
 
+Describe each process in a declarative manner.
+Processes are async by default.
+
 #+BEGIN_SRC lisp
-  (multiple-value-bind (read write) (pipe)
-    (let* ((in "t/test-input")
-           (out "t/test-output")
-           (err "t/test-error")
-           (p1 (shell '("cat") `((,in :direction :input) ,write :out)))
-           (p2 (shell '("cat") `(,read
-                                 (,out :direction :output
-                                       :if-does-not-exist :create)
-                                 (,err :direction :output
-                                       :if-does-not-exist :create)))))
-      (wait p1)
-      (wait p2)))
+(defvar pipe (pipe))
+(defvar in "t/test-input")
+(defvar out "t/test-output")
+
+(defvar p1 (shell '("cat") `((,in   :direction :input) ; fd 0
+                             (,pipe :direction :output)))) ; fd 1
+(defvar p2 (shell '("cat") `((,pipe :direction :input) ; fd 0
+                             (,out  :direction :output)))) ; fd 1
+
+(wait p1)
+(wait p2)
 #+END_SRC
 
-+ Async by default. no wait !
-+ Even if you forget waiting the process, it is handled by trivial-garbage
-  --- when a process object (here, p1 and p2) is GC-ed, it is automatically
-  kill(2)ed and wait(2)ed. When the process is still alive after SIGTERM,
-  we also finish it with SIGKILL.
+Even if you forget waiting the process, it is handled by trivial-garbage
+--- when a process object (here, p1 and p2) is GC-ed, it is automatically
+kill(2)ed and wait(2)ed. When the process is still alive after SIGTERM,
+we also finish it with SIGKILL.
 
 ** Implicit Piping
+
+If you do not specify the pipe, a new pipe is implicitly created for each
+fd, and the /other/ end of the pipe is accessible with =(fd process fdnum)=.
 
 #+BEGIN_SRC lisp
     (let* ((in "t/test-input")
@@ -52,14 +56,14 @@
       (wait p2))
 #+END_SRC
 
-+ A pipe is created for each fd, implicitly
-+ =(fd process fdnum)= returns the fd connected to the other end of the pipe
-
 ** Reading the output
 
 On systems that implements procfs (well this should be fixed :( ),
 the output of the subprocess can be read from =fd-as-pathname=, which
 returns an address to =/proc/[pid]/fd/[fd]=.
+
+*EAZY-PROCESS sticks with file descriptors* and do not provide
+the interface to the common lisp stream.
 
 #+BEGIN_SRC lisp
 (test read
@@ -69,15 +73,10 @@ returns an address to =/proc/[pid]/fd/[fd]=.
                    (read-line s))))))
 #+END_SRC
 
-*EAZY-PROCESS sticks with file descriptors* and do not provide
-the interface to the common lisp stream.
-
 ** Resource management
 
-Partly adopted the cl-rlimit interface.
-Macro =with-rlimit= dynamically binds/appends/overwrites the current rlimit
-resource limitation. Not in a destructive manner -- new binding is
-created for each macro, and can be nested.
+Macro =with-rlimit= dynamically binds the current rlimit
+resource limitation. 
 
 As noted in =*rlimit-resources*= docstring, this does not affect the lisp process itself.
 It only affect the new child processes spawned by =shell=.
@@ -99,13 +98,25 @@ is killed by SIGXCPU.
        (is (= 24 termsig)))))
 #+END_SRC
 
+The macro can be nested, and unlike original rlimit, you can increase the
+number (but not above the limit of the lisp process itself).
+The new subprocess reflects the inntermost limitation.
+
+#+BEGIN_SRC lisp
+(with-rlimit ((+rlimit-cpu-time+ 3))
+  (shell ...) ; 3 sec
+  (with-rlimit ((+rlimit-cpu-time+ 5)
+                (+rlimit-as+ 500000))
+    (shell ...))) ; 5 sec, 500 MB
+#+END_SRC
+
 * Dependencies
 This library is at least tested on implementation listed below:
 
 + SBCL 1.2.1 on X86-64 Linux 3.13.0-39-generic (author's environment)
 + SBCL 1.1.14 on X86 Linux 3.13.0-44-generic (author's environment)
-+ CCL 1.9 currently has a problem regarding reading the
-  =/proc/[pid]/fd/[fd]= and the test does not pass.  Therefore do not use
++ CCL 1.9 currently has a problem reading
+  =/proc/[pid]/fd/[fd]= and the test does not pass. Do not use
   =(fd-as-pathname process fd)= and use temorary files instead.
 
 It depends on the latest libfixposix available at
