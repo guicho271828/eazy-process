@@ -4,7 +4,9 @@
 ;;; preprocessing
 
 (defun dclose (old new)
+  "Duplicate the old fd, set it to the new fd, then close the old fd"
   (dup2 old new)
+  ;; note that if read==i then duplication does not occur
   (unless (= old new) (isys:close old)))
 
 (defun canonicalize-fdspec (fdspec)
@@ -20,7 +22,6 @@ Parent-fn should return the fd of the parent-end."
      (multiple-value-bind (read write) (isys:pipe)
        (cons (lambda (i) (isys:close read) write)
              (lambda (i)
-               ;; note that if read==i then duplication does not occur
                (dclose read i)
                (isys:close write)))))
     ((or :o :out :output)
@@ -30,8 +31,10 @@ Parent-fn should return the fd of the parent-end."
                (dclose write i)
                (isys:close read)))))
     ((type fixnum)
-     (warn "this feature is deprecated!")
-     (cons (constantly nil)
+     (cons (lambda (i)
+             ;; ensure that the only process opening this fd is the child
+             ;; process
+             (isys:close fdspec) nil)
            (lambda (i)
              (dclose fdspec i))))
     ((list* (and pipe (pipe)) options)
