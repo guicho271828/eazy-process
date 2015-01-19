@@ -68,7 +68,7 @@
       (is (string= (machine-instance)
                    (read-line s))))))
 
-(test manual-pipe
+(test implicit-pipe
   (let (pid1 pid2)
     (finishes
       (let* ((p1 (shell `("ps" "-ef")))
