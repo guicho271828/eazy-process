@@ -1,58 +1,23 @@
 
 #+startup: showall
 
-* Status
-
-incomplete
++ +Status: incomplete+
++ Status: sbcl completed
 
 * Goals
 
-+ [X] Implementation-agnostic process handling / subshell invocation through cffi, fork, exec
++ [X] process handling / subshell invocation through cffi, fork, exec
   + pros: arbitrary number of fd's
   + pros: full power of pipe, mkfifo, sockets
   + cons: implicit blocking of wait(2) by some host lisp implementations ?
-+ [ ] Memory / Walltime management of the child processes
-  + [ ] +hierarchycal model+ --- granpa/gramma won't care
-  + [ ] maybe also include network/IO restriction
++ [ ] Implementation independency
++ [X] Memory / Walltime management of the child processes
+  + +hierarchical model+ --- grandpa/gram-ma won't care
+  + +maybe also include network/IO restriction+
 + [-] Compatibility layer to the existing State-of-the-Art libraries 
   + [X] trivial-shell
   + [ ] inferior-shell
   + [ ] sb-ext:run-program
-
-* Simple syntax
-
-#+BEGIN_SRC lisp
-(defun shell (argv &optional
-               (fdspecs '(:in :out :out))
-               (environments nil env-p)
-               (search t))
-    ...)
-#+END_SRC
-
-** Fdspecs
-
-: fdspecs := {fdspec}*
-: fdspec  := output | input | fd | openfilespec
-: output  := :output | :out | :o
-: input   := :input | :in | :i
-: fd      := <number>
-: openfilespec := (pathname &key direction if-exists if-does-not-exist)
-
---- openfilespec is almost identical to the argument list of =OPEN= in ANSI
-spec, however =:rename= and =:rename-and-delete= is not supported.
-
-** Environments
-
-: environments := {environment}*
-: environment  := enc-pair | env-string
-: env-pair     := (name . value)
-: env-string   := "name=value"
-: name, value -- string
-
-If we omit the second argument =environments=,
-the subprocess inherits the environment of the parent lisp process.
-If you give =nil= explicitly, then it means the child process has no
-environment at all.
 
 * Usage
 
@@ -77,9 +42,128 @@ environment at all.
   kill(2)ed and wait(2)ed. When the process is still alive after SIGTERM,
   we also finish it with SIGKILL.
 
-** inferior-shell interface
+** Implicit Piping
 
-=*bourne-comatible-shell*= is replaced with =*interpreter*=
+#+BEGIN_SRC lisp
+    (let* ((in "t/test-input")
+           (p1 (shell '("cat") `((,in :direction :input) :out :out)))
+           (p2 (shell '("cat") `(,(fd p1 1) :out :out))))
+      (wait p1)
+      (wait p2))
+#+END_SRC
+
++ A pipe is created for each fd, implicitly
++ =(fd process fdnum)= returns the fd connected to the other end of the pipe
+
+** Reading the output
+
+On systems that implements procfs (well this should be fixed :( ),
+the output of the subprocess can be read from =fd-as-pathname=, which
+returns an address to =/proc/[pid]/fd/[fd]=.
+
+#+BEGIN_SRC lisp
+(test read
+  (let ((p1 (shell `("hostname"))))
+    (with-open-file (s (fd-as-pathname p1 1))
+      (is (string= (machine-instance)
+                   (read-line s))))))
+#+END_SRC
+
+*EAZY-PROCESS sticks with file descriptors* and do not provide
+the interface to the common lisp stream.
+
+** Resource management
+
+Partly adopted the cl-rlimit interface.
+Macro =with-rlimit= dynamically binds/appends/overwrites the current rlimit
+resource limitation. Not in a destructive manner -- new binding is
+created for each macro, and can be nested.
+
+As noted in =*rlimit-resources*= docstring, this does not affect the lisp process itself.
+It only affect the new child processes spawned by =shell=.
+
+Example below shows the usecase where =*spendtime*= contains a path to a
+simple C program that busy-waits for 10 seconds. The execution is
+terminated in 3 seconds. TERMSIG is set to 24 because the program
+is killed by SIGXCPU.
+
+#+BEGIN_SRC lisp
+ (with-rlimit ((+rlimit-cpu-time+ 3)) ; 3 sec
+   (let ((p (shell `(,(namestring *spendtime*))))) 
+     (multiple-value-bind
+            (exited exitstatus ifsignalled termsig ...)
+            (wait p)
+       (is-false exited)
+       (is-false exitstatus)
+       (is-true ifsignalled)
+       (is (= 24 termsig)))))
+#+END_SRC
+
+* Dependencies
+This library is at least tested on implementation listed below:
+
++ SBCL 1.2.1 on X86-64 Linux 3.13.0-39-generic (author's environment)
++ SBCL 1.1.14 on X86 Linux 3.13.0-44-generic (author's environment)
++ CCL 1.9 currently has a problem regarding reading the
+  =/proc/[pid]/fd/[fd]= and the test does not pass.  Therefore do not use
+  =(fd-as-pathname process fd)= and use temorary files instead.
+
+It depends on the latest libfixposix available at
+https://github.com/sionescu/libfixposix .
+
+Also, it depends on the following libraries:
+
++ iterate by *Jonathan Amsterdam* :
+    Jonathan Amsterdam's iterator/gatherer/accumulator facility
++ Alexandria by ** :
+    Alexandria is a collection of portable public domain utilities.
++ cffi by *James Bielman  <jamesjb@jamesjb.com>* :
+    The Common Foreign Function Interface
++ optima by *Tomohiro Matsuyama* :
+    Optimized Pattern Matching Library
++ iolib
++ trivial-garbage
++ cl-rlimit
+
+* Syntax
+
+#+BEGIN_SRC lisp
+(defun shell (argv &optional
+               (fdspecs '(:in :out :out))
+               (environments nil env-p)
+               (search t))
+    ...)
+#+END_SRC
+
+** Fdspecs
+
+: fdspecs := {fdspec}*
+: fdspec  := output | input | fd | openfilespec
+: output  := :output | :out | :o
+: input   := :input | :in | :i
+: fd      := <number>
+: openfilespec := (pathname &key direction if-exists if-does-not-exist)
+
+--- openfilespec is almost identical to the argument list of =OPEN= in ANSI
+spec, however =:rename= and =:rename-and-delete= are not supported.
+
+** Environments
+
+: environments := {environment}*
+: environment  := env-pair | env-string
+: env-pair     := (name . value)
+: env-string   := "name=value"
+: name, value -- string
+
+If we omit the second argument =environments=,
+the subprocess inherits the environment of the parent lisp process.
+If you give =nil= explicitly, then it means the child process has no
+environment at all.
+
+* Compatibility Layers
+** trivial-shell compatibility
+
+=*bourne-compatible-shell*= is replaced with =*interpreter*=
 
 #+BEGIN_SRC lisp
 (shell-command "expr 1 + 2 + 3 + 4") ; --> "10\n"
@@ -91,11 +175,14 @@ environment at all.
  (shell-command "print(1+3)"))   ; --> "4"
 #+END_SRC
 
-** inferior-shell
+Since this compatibility layer is implemented with =shell=,
+resource binding established by =with-rlimit= is in effect.
+
+** inferior-shell compatibility
 
 TBP
 
-** sb-ext:run-program
+** sb-ext:run-program compatibility
 
 TBP
 
@@ -108,7 +195,7 @@ hierarchycal manner while keeping the implementation/OS-independency.
    other people running Mac OS X on their fancy laptops (well, I'm a
    dedicated fan of thinkpad X-series since X20...)
 2. Procfs, in pathnames. Rejected because it seemed slow.
-3. libprocps. Rejected because the library design is owful, as described in
+3. libprocps. Rejected because the library design is awful, as described in
    https://gitorious.org/procps/pages/The_libprocps_redesign
 4. Now towards hwloc. It is used by htop, torque, OpenMPI. Holds wide
    variety of unix platforms, including Darwin and windows. --- it seems
@@ -118,25 +205,6 @@ hierarchycal manner while keeping the implementation/OS-independency.
    lispselves. However, procfs is not available on the other platforms again...
 6. http://pythonhosted.org/psutil/ is using different implementations for
    different OS'es. uh oh...
-
-* Dependencies
-This library is at least tested on implementation listed below:
-
-+ SBCL 1.2.1 on X86-64 Linux 3.13.0-39-generic (author's environment)
-
-Also, it depends on the following libraries:
-
-+ iterate by *Jonathan Amsterdam* :
-    Jonathan Amsterdam's iterator/gatherer/accumulator facility
-+ alexandria by ** :
-    Alexandria is a collection of portable public domain utilities.
-+ cffi by *James Bielman  <jamesjb@jamesjb.com>* :
-    The Common Foreign Function Interface
-+ optima by *Tomohiro Matsuyama* :
-    Optimized Pattern Matching Library
-+ iolib
-+ trivial-garbage
-+ cl-rlimit
 
 * Author
 
