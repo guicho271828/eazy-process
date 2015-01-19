@@ -14,7 +14,7 @@
                 :execvp ; :execvpe
                 ;; :exit
                 :mkfifo :mkdtemp
-                :pipe :dup2
+                :dup2
                 :kill :waitpid)
   (:export
    #:shell
@@ -55,4 +55,5 @@
    #:directions
    #:pipe
    #:*rlimit-resources*
-   #:with-rlimit))
+   #:with-rlimit
+   #:close-pipe))
