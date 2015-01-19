@@ -39,6 +39,7 @@
                  (:file :pipe)
                  (:file :environ)
                  (:file :specials)
+                 (:file :fdspec)
                  (:file :shell)
                  (:file :process)
                  (:file :resources)
