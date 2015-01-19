@@ -10,7 +10,7 @@ int main ()
   seconds = time(NULL);
   do {
     seconds2 = time(NULL);
-  } while ((seconds2 - seconds)<10) ;
+  } while ((seconds2 - seconds)<3) ;
   printf("done\n");
   return(0);
 }

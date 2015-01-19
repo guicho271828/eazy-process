@@ -280,7 +280,7 @@
   (with-ensure-missing-files (*spendtime*)
     (make)
     (finishes (print (shell-command *spendtime*)))
-    (let ((p (shell `(,(namestring *spendtime*))))) ;; wait 10sec
+    (let ((p (shell `(,(namestring *spendtime*))))) ; busy wait
       (destructuring-bind (exited exitstatus ifsignalled termsig &rest args) 
           (print (multiple-value-list (wait p)))
         (is-true exited)
@@ -292,7 +292,7 @@
   ;; (sleep 15)
   (with-ensure-missing-files (*spendtime*)
     (make)
-    (with-rlimit ((+rlimit-cpu-time+ 3)) ; 3 sec
+    (with-rlimit ((+rlimit-cpu-time+ 1)) ; sec
       (finishes (print (shell-command *spendtime*)))
       (let ((p (shell `(,(namestring *spendtime*)))))
         (destructuring-bind (exited exitstatus ifsignalled termsig &rest args) 
