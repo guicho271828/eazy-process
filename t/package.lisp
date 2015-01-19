@@ -27,7 +27,8 @@
    #:pids))
 (in-package :eazy-process.test)
 
-
+(defun localpath (str)
+  (asdf:system-relative-pathname :eazy-process str))
 
 (def-suite :eazy-process)
 (in-suite :eazy-process)
@@ -150,13 +151,13 @@
             (is (string= "guicho" (read-line s))))
           (with-open-file (s err)
             (signals error
-              (read-char s)))))))) ; because it should write nothing to the error output
+            (read-char s))))))) ; because it should write nothing to the error output
 
 #+nil
 (test tee
-    (let* ((in (asdf:system-relative-pathname :eazy-process "t/test-input"))
-           (out (asdf:system-relative-pathname :eazy-process "t/test-output"))
-           (tee (asdf:system-relative-pathname :eazy-process "t/test-tee")))
+    (let* ((in (localpath "t/test-input"))
+           (out (localpath "t/test-output"))
+           (tee (localpath "t/test-tee")))
       (is (probe-file out))
       (with-open-file (s out)
         (string= "guicho" (read-line s)))
@@ -225,11 +226,11 @@
 
 ;;; resource
 
-(defvar *testdir* (asdf:system-relative-pathname :eazy-process "t"))
-(defvar *exit0* (asdf:system-relative-pathname :eazy-process "t/exit0"))
-(defvar *exit1* (asdf:system-relative-pathname :eazy-process "t/exit1"))
-(defvar *malloc* (asdf:system-relative-pathname :eazy-process "t/malloc"))
-(defvar *spendtime* (asdf:system-relative-pathname :eazy-process "t/spendtime"))
+(defvar *testdir* (localpath "t"))
+(defvar *exit0* (localpath "t/exit0"))
+(defvar *exit1* (localpath "t/exit1"))
+(defvar *malloc* (localpath "t/malloc"))
+(defvar *spendtime* (localpath "t/spendtime"))
 (defun make ()
   (print (shell-command (format nil "make -C ~a" *testdir*)))
   (is-true (probe-file *malloc*))
