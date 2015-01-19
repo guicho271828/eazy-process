@@ -36,6 +36,7 @@
                 ((:file :package)
                  (:file :execv)
                  (:file :mktempfifo)
+                 (:file :pipe)
                  (:file :environ)
                  (:file :specials)
                  (:file :shell)

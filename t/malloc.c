@@ -6,8 +6,8 @@
 
 int main(void)
 {
-  /* allocate 1 GiB = (2^10=1024)^3 */
-  int size = (1 << 30);
+  /* allocate 500 MiB (2^10=1024)^3-1 */
+  int size = (1 << 29);
   int length = (size / sizeof (int));
   int* a;
   int i;

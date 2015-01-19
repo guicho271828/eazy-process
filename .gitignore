@@ -11,3 +11,7 @@
 /t/spendtime
 /t/exit0
 /t/exit1
+/t/dup
+/t/dup2
+/t/test-error
+/t/test-output
