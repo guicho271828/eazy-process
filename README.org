@@ -1,28 +1,24 @@
 
 #+startup: showall
 
-+ +Status: incomplete+
-+ Status: sbcl completed
+* What it does
 
-* Goals
-
-+ [X] process handling / subshell invocation through cffi, fork, exec
-  + pros: arbitrary number of fd's
-  + pros: full power of pipe, mkfifo, sockets
-  + cons: implicit blocking of wait(2) by some host lisp implementations ?
-+ [ ] Implementation independency
-+ [X] Memory / Walltime management of the child processes
-  + +hierarchical model+ --- grandpa/gram-ma won't care
-  + +maybe also include network/IO restriction+
++ Declarative process handling
++ Subprocess spawned by POSIX fork&exec, no impl-specific interface
++ Memory / CPU-time management of the child processes
 + [-] Compatibility layer to the existing State-of-the-Art libraries 
   + [X] trivial-shell
   + [ ] inferior-shell
   + [ ] sb-ext:run-program
 
-* Usage
+* What it doesn't
 
-Describe each process in a declarative manner.
-Processes are async by default.
++ writing to/reading from the input/output of a specific process
++ creating a stream
++ using processes as a subroutine
++ mimicking the shell scripts
+
+* Usage
 
 #+BEGIN_SRC lisp
 (defvar pipe (pipe))
@@ -38,10 +34,11 @@ Processes are async by default.
 (wait p2)
 #+END_SRC
 
+Processes are async by default.
 Even if you forget waiting the process, it is handled by trivial-garbage
 --- when a process object (here, p1 and p2) is GC-ed, it is automatically
 kill(2)ed and wait(2)ed. When the process is still alive after SIGTERM,
-we also finish it with SIGKILL.
+it also finish the process with SIGKILL.
 
 ** Implicit Piping
 
@@ -59,11 +56,8 @@ fd, and the /other/ end of the pipe is accessible with =(fd process fdnum)=.
 ** Reading the output
 
 The output of the subprocess can be read from =fd-as-pathname=, which
-returns an address to the proper =/dev/fd/[fd]= connected to the child
-process through a pipe.
-
-*EAZY-PROCESS sticks with file descriptors* and do not provide
-the interface to the common lisp stream.
+returns the pathname =/dev/fd/[fd]=.
+*EAZY-PROCESS sticks with file descriptors* and do not provide the stream interface.
 
 #+BEGIN_SRC lisp
 (test read
@@ -77,9 +71,8 @@ the interface to the common lisp stream.
 
 Macro =with-rlimit= dynamically binds the current rlimit
 resource limitation. 
-
 As noted in =*rlimit-resources*= docstring, this does not affect the lisp process itself.
-It only affect the new child processes spawned by =shell=.
+--- It only affect the new child processes spawned by =shell=.
 
 Example below shows the usecase where =*spendtime*= contains a path to a
 simple C program that busy-waits for 10 seconds. The execution is
@@ -98,7 +91,7 @@ is killed by SIGXCPU.
        (is (= 24 termsig)))))
 #+END_SRC
 
-The macro can be nested, and unlike original rlimit, you can increase the
+This macro can be nested, and unlike original rlimit, you can increase the
 number (but not above the limit of the lisp process itself).
 The new subprocess reflects the inntermost limitation.
 
@@ -111,6 +104,7 @@ The new subprocess reflects the inntermost limitation.
 #+END_SRC
 
 * Tested Impl
+
 This library is at least tested on implementation listed below:
 
 + SBCL 1.2.1 on X86-64 Linux 3.13.0-39-generic (author's environment)
@@ -123,9 +117,9 @@ This library is at least tested on implementation listed below:
 + ABCL has more problems than CCL. It fails to open =/proc/[pid]/fd/[fd]=
   and also have problems with CFFI.
 
-Test reports on the other OS'es are greatly appreciated.
+Test reports on other OS'es/impls are greatly appreciated.
 Run =./simple-build-test.sh=, assuming it already loads quicklisp in your
-init files. Help me!
+init files.
 
 * Dependencies
 
@@ -217,26 +211,6 @@ TBP
 ** sb-ext:run-program compatibility
 
 TBP
-
-* Library selection
-
-I have searched for ways to manage the memory usage of processes in a
-hierarchycal manner while keeping the implementation/OS-independency.
-
-1. libcgroup was rejected because it only targets Linux, while I see many
-   other people running Mac OS X on their fancy laptops (well, I'm a
-   dedicated fan of thinkpad X-series since X20...)
-2. Procfs, in pathnames. Rejected because it seemed slow.
-3. libprocps. Rejected because the library design is awful, as described in
-   https://gitorious.org/procps/pages/The_libprocps_redesign
-4. Now towards hwloc. It is used by htop, torque, OpenMPI. Holds wide
-   variety of unix platforms, including Darwin and windows. --- it seems
-   the purpose of the library seems different.
-5. Back to procps. This time, saw the C source code instead of just the
-   header files. They are reading the /proc ... ewww. Better reading by
-   lispselves. However, procfs is not available on the other platforms again...
-6. http://pythonhosted.org/psutil/ is using different implementations for
-   different OS'es. uh oh...
 
 * Author
 
