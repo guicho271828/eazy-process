@@ -155,12 +155,12 @@ When =search= is nil, it disables the pathname resolving using PATH.
 ** Fdspecs
 
 : fdspecs := {fdspec}*
-: fdspec  := output | input | fd | pipe | openfilespec
+: fdspec  := output | input | fd | openspec
 : output  := :output | :out | :o
 : input   := :input | :in | :i
-: pipe    := <pipe object>
 : fd      := <fixnum>
-: openfilespec := (pathname &key direction if-exists if-does-not-exist)
+: openspec := (path-or-pipe &key direction if-exists if-does-not-exist)
+: path-or-pipe := <pipe object> | <pathname>
 : direction := :input | :output | :io | :probe
 : if-exists := :ovewrite | :supersede | :append | :error
 : if-does-not-exist := :create | :error
