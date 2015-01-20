@@ -24,8 +24,9 @@ Properties of a process are accessible through several functions."))
                                  :pid pid
                                  :fds fds
                                  :streams streams)))
-    (finalize process
-              (lambda () (%finalize-process pid 15 fds streams)))
+    (trivial-garbage:finalize
+     process
+     (lambda () (%finalize-process pid 15 fds streams)))
     process))
 
 (defun %finalize-process (pid sig fds streams)

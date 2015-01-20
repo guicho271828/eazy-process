@@ -61,7 +61,7 @@ The input is read from the :input key argument.
     (let (p)
       (unwind-protect-case ()
           (progn
-            (setf p (shell (append (split "[ \t]+" *interpreter*) (list command))))
+            (setf p (shell (append (ppcre:split "[ \t]+" *interpreter*) (list command))))
             (with-open-file (s (fd-as-pathname p 0)
                                :direction :output
                                :if-exists :overwrite)

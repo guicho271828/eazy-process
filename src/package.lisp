@@ -5,8 +5,7 @@
 
 (in-package :cl-user)
 (defpackage :eazy-process
-  (:use :cl :iterate :alexandria :optima :cl-ppcre :cffi cl-rlimit)
-  (:import-from :trivial-garbage :gc :finalize)
+  (:use :cl :iterate :alexandria :optima :cffi :cl-rlimit)
   (:import-from :iolib/syscalls
                 :getpid :getppid :getpgid
                 :fork
@@ -21,39 +20,40 @@
    #:process
    #:getpid
    #:pid
-   #:getppid
-   #:ppid
-   #:getpgid
-   #:pgid
    #:wait
-   ;; procfs
-   #:io
    #:fd
-   #:proc
-   #:statm
-   #:stat
-   #:+stat-keywords+
-   #:+statm-keywords+
-   #:+io-keywords+
    #:+fdspecs-default+
    #:fd-as-pathname
    #:fds
-   #:subprocesses
-   #:all-processes
-   #:threads
-   ;; trivial-shell
+   #:pipe
+   #:*rlimit-resources*
+   #:with-rlimit
+   #:close-pipe
+   ;;;; proc file system
+   ;; #:io
+   ;; #:proc
+   ;; #:statm
+   ;; #:stat
+   ;; #:+stat-keywords+
+   ;; #:+statm-keywords+
+   ;; #:+io-keywords+
+   ;; #:subprocesses
+   ;; #:all-processes
+   ;; #:threads
+   ;; #:getppid
+   ;; #:ppid
+   ;; #:getpgid
+   ;; #:pgid
+   ;;;; trivial-shell
    #:shell-command
    #:*interpreter*
    #:finalize-process
    #:environment
-   #:run-program
-   #:process-kill
-   #:process-wait
-   #:process-input
-   #:process-output
-   #:process-error
-   #:directions
-   #:pipe
-   #:*rlimit-resources*
-   #:with-rlimit
-   #:close-pipe))
+   ;;;; sbcl run-program
+   ;; #:run-program
+   ;; #:process-kill
+   ;; #:process-wait
+   ;; #:process-input
+   ;; #:process-output
+   ;; #:process-error
+   ))
