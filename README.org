@@ -183,8 +183,7 @@ When =search= is nil, it disables the pathname resolving using PATH.
 
 If we omit the second argument =environments=,
 the subprocess inherits the environment of the parent lisp process.
-If you give =nil= explicitly, then it means the child process has no
-environment at all.
+=unset= -ting the environment value is not available.
 
 * Compatibility Layers
 ** trivial-shell compatibility
