@@ -10,7 +10,7 @@ subshell implemented with fork-execvp
 
 (defun shell (argv &optional
                      (fdspecs '#.+fdspecs-default+)
-                     (environments nil env-p)
+                     environments
                      (search t))
   (let ((fdspecs (mapcar #'canonicalize-fdspec fdspecs)))
     (let ((pid (fork)))
@@ -18,7 +18,7 @@ subshell implemented with fork-execvp
         ;; ((= -1 pid) ;; this is already handled by iolib, so don't care
         ;;  (%failure command))
         ((zerop pid)
-         (%in-child fdspecs argv environments env-p search))
+         (%in-child fdspecs argv environments search))
         (t
          (%in-parent fdspecs pid))))))
 
@@ -29,7 +29,7 @@ subshell implemented with fork-execvp
          (for (parent . child) in fdspecs)
          (collect (funcall parent i) result-type vector))))
 
-(defun %in-child (fdspecs argv environments env-p search)
+(defun %in-child (fdspecs argv environments search)
          (handler-case
              (progn
                (iter (for kind from 0)
@@ -39,7 +39,7 @@ subshell implemented with fork-execvp
                (iter (for i from 0)
                      (for (parent . child) in fdspecs)
                      (funcall child i))
-               (%exec argv environments env-p search))
+               (%exec argv environments search))
            (isys:syscall-error (c)
              (declare (ignorable c))
              (foreign-funcall "_exit" :int 203))
@@ -47,49 +47,22 @@ subshell implemented with fork-execvp
              (declare (ignorable c))
              (foreign-funcall "_exit" :int 202))))
 
-(defun %exec (argv env env-p search)
+(defun %exec (argv env search)
+  (map nil #'%setenv env)
   (if search
-      (if env-p
-          (%execvpe argv env)
-          (%execvp argv))
-      (if env-p
-          (%execve argv env)
-          (%execv argv))))
-
-;;; 4 versions of exec
+      (%execvp argv)
+      (%execv argv)))
 
 (defun make-c-char* (list-of-string)
   (foreign-alloc :string
                  :initial-contents list-of-string
                  :null-terminated-p t))
 
-(defun make-c-env-char* (list)
-  (make-c-char*
-   (mapcar (lambda (pair)
-             (etypecase pair
-               (cons (format nil "~a=~a" (car pair) (cdr pair)))
-               (string pair)))
-           list)))
-
-(defun %execvpe (argv env)
-  (let (_argv _env)
-    (unwind-protect
-         (progn
-           (setf _argv (make-c-char* argv))
-           (setf _env (make-c-env-char* env))
-           (execvpe (first argv) _argv _env)) ; does not return on success
-      (when _argv (foreign-free _argv))
-      (when _env (foreign-free _env)))))
-
-(defun %execve (argv env)
-  (let (_argv _env)
-    (unwind-protect
-         (progn
-           (setf _argv (make-c-char* argv))
-           (setf _env (make-c-env-char* env))
-           (execve (first argv) _argv _env)) ; does not return on success
-      (when _argv (foreign-free _argv))
-      (when _env (foreign-free _env)))))
+(defun %setenv (pair)
+  (match pair
+    ((or (cons name value)
+         (ppcre "([^=]*)=(.*)" name value))
+     (isys:setenv name value t))))
 
 (defun %execvp (argv)
   (let (_argv)

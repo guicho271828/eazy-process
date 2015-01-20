@@ -23,6 +23,7 @@
   :depends-on (:iterate :alexandria
                         :cffi
                         :optima
+                        :optima.ppcre
                         :iolib/syscalls
                         :trivial-garbage
                         :cl-ppcre
@@ -31,7 +32,6 @@
                 :serial t
                 :components
                 ((:file :package)
-                 (:file :execv)
                  (:file :mktempfifo)
                  (:file :pipe)
                  (:file :environ)

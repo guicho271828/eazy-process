@@ -5,7 +5,10 @@
 
 (in-package :cl-user)
 (defpackage :eazy-process
-  (:use :cl :iterate :alexandria :optima :cffi :cl-rlimit)
+  (:use :cl :iterate :alexandria
+        :optima :optima.ppcre
+        :cffi
+        :cl-rlimit)
   (:import-from :iolib/syscalls
                 :getpid :getppid :getpgid
                 :fork
