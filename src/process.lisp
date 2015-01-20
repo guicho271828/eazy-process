@@ -121,4 +121,7 @@ Example:
 This means that the 5'th fd of the lisp process is connected to the 1st fd of the process P."
   (aref (fds process) n))
 
- 
+(defun fd-as-pathname (process fd)
+  "Return the pathname for each file descriptor.
+Lisp can read/write to each fd by opening this file."
+  (format nil "/dev/fd/~a" (fd process fd)))

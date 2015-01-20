@@ -58,9 +58,9 @@ fd, and the /other/ end of the pipe is accessible with =(fd process fdnum)=.
 
 ** Reading the output
 
-On systems that implements procfs (well this should be fixed :( ),
-the output of the subprocess can be read from =fd-as-pathname=, which
-returns an address to =/proc/[pid]/fd/[fd]=.
+The output of the subprocess can be read from =fd-as-pathname=, which
+returns an address to the proper =/dev/fd/[fd]= connected to the child
+process through a pipe.
 
 *EAZY-PROCESS sticks with file descriptors* and do not provide
 the interface to the common lisp stream.
@@ -118,6 +118,8 @@ This library is at least tested on implementation listed below:
 + CCL 1.9 currently has a problem reading
   =/proc/[pid]/fd/[fd]= and the test does not pass. Do not use
   =(fd-as-pathname process fd)= and use temorary files instead.
++ ECL fails to load CFFI...
++ ABCL has more problems than CCL.
 
 It depends on the latest libfixposix available at
 https://github.com/sionescu/libfixposix .

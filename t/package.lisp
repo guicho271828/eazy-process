@@ -38,18 +38,6 @@
 (test pids
   (finishes
     (format t "~& my pid : ~a" (getpid))))
-(test ppid
-  (finishes
-    (format t "~& ppid : ~a" (ppid (getpid)))))
-(test pgid
-  (finishes
-    (format t "~& gpid : ~a" (pgid (getpid)))))
-(test subprocesses
-  (finishes
-    (format t "~& children : ~a" (subprocesses (getpid)))))
-(test threads
-  (finishes
-    (format t "~& threads : ~a" (threads (getpid)))))
 
 ;;; shell
 
@@ -178,32 +166,6 @@
 ;; the result will not be written into `out' ... but what does the second cat read from?
 ;; Probably 1>&2 is implemented with `dup', not `dup2'. So the second cat is reading from
 ;; an empty pipe.
-
-
-;;; posix procfs
-
-(defun test-subfields (fn fields)
-  (finishes (print (funcall fn :self)))
-  (iter (for f in-sequence fields)
-        (is-true (typep (funcall fn :self f) 'integer)
-                 "~a not integer" f)
-        (is-true (typep (funcall fn :self (princ-to-string f)) 'integer)
-                 "~a not integer" f)
-        (is-true (typep (funcall fn :self (let ((*print-case* :downcase))
-                                            (princ-to-string f))) 'integer)
-                 "~a not integer" f))
-  (signals error (funcall fn :self :nosuchfield))
-  (signals error (funcall fn :self "nosuchfield"))
-  (signals error (funcall fn :self "NOSUCHFIELD")))
-
-(test procfs
-  (finishes
-    (proc :self :fdinfo)
-    (proc :self :fd)))
-
-(test io (test-subfields #'io +io-keywords+))
-(test statm (test-subfields #'statm +statm-keywords+))
-(test stat (test-subfields #'stat (remove :state (remove :comm +stat-keywords+))))
 
 ;;; trivial-shell
 

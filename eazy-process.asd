@@ -43,7 +43,7 @@
                  (:file :shell)
                  (:file :process)
                  (:file :resources)
-                 #+linux
+                 #+nil
                  (:module :linux
                           :serial t
                           :components
