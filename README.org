@@ -56,7 +56,8 @@ accessible with =(fd process fdnum)=. When =nil= is specified, it means /dev/nul
 
 The output of the subprocess can be read from =fd-as-pathname=, which
 returns the pathname =/dev/fd/[fd]=.
-*EAZY-PROCESS sticks with file descriptors* and do not provide a stream interface.
+*EAZY-PROCESS sticks with file descriptors and files*,
+and do not provide a stream interface.
 
 #+BEGIN_SRC lisp
 (test read
@@ -65,6 +66,8 @@ returns the pathname =/dev/fd/[fd]=.
       (is (string= (machine-instance)
                    (read-line s))))))
 #+END_SRC
+
+Bye bye Windows.
 
 ** Resource management
 
