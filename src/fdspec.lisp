@@ -83,7 +83,7 @@ Parent-fn should return the fd of the parent-end."
         (:probe  (values   t nil isys:o-rdonly)))
     (declare (ignorable input output))
     (ecase if-exists
-      ((:new-version :error nil)
+      ((:error nil)
        (setf mask (logior mask isys:o-excl)))
       ;; ((:rename :rename-and-delete)
       ;;  (setf mask (logior mask isys:o-creat)))

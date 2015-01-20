@@ -148,17 +148,28 @@ Also, it depends on the following libraries:
     ...)
 #+END_SRC
 
+When =search= is nil, it disables the pathname resolving using PATH.
+
 ** Fdspecs
 
 : fdspecs := {fdspec}*
-: fdspec  := output | input | fd | openfilespec
+: fdspec  := output | input | fd | pipe | openfilespec
 : output  := :output | :out | :o
 : input   := :input | :in | :i
-: fd      := <number>
+: pipe    := <pipe object>
+: fd      := <fixnum>
 : openfilespec := (pathname &key direction if-exists if-does-not-exist)
+: direction := :input | :output | :io | :probe
+: if-exists := :ovewrite | :supersede | :append | :error
+: if-does-not-exist := :create | :error
 
---- openfilespec is almost identical to the argument list of =OPEN= in ANSI
-spec, however =:rename= and =:rename-and-delete= are not supported.
++ =output= form and =input= form implicitly create a new pipe.
++ Function =pipe= generates a new pipe object that can be used as an fdspec.
++ The fixnum should be a value of function =(fd process fdnum)=.
++ Openfilespec is almost identical to the argument list of =OPEN= in ANSI
+  spec, however =:rename=, =:rename-and-delete=, =:new-version= are not
+  supported and signals an error.
++ Be careful when you open a fifo, the process will be blocked.
 
 ** Environments
 
