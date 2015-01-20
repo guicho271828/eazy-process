@@ -110,16 +110,24 @@ The new subprocess reflects the inntermost limitation.
     (shell ...))) ; 5 sec, 500 MB
 #+END_SRC
 
-* Dependencies
+* Tested Impl
 This library is at least tested on implementation listed below:
 
 + SBCL 1.2.1 on X86-64 Linux 3.13.0-39-generic (author's environment)
 + SBCL 1.1.14 on X86 Linux 3.13.0-44-generic (author's environment)
-+ CCL 1.9 currently has a problem reading
-  =/proc/[pid]/fd/[fd]= and the test does not pass. Do not use
-  =(fd-as-pathname process fd)= and use temorary files instead.
-+ ECL fails to load CFFI...
-+ ABCL has more problems than CCL.
++ CCL 1.10 on linux currently has a problem reading =/dev/fd/[fd]=, which
+  is actually a symlink to =/proc/[pid]/fd/[fd]=, and the test does not
+  pass. Do not use =(fd-as-pathname process fd)= and use temorary
+  files instead.
++ ECL opens =/dev/fd/[fd]= correctly, but it fails to load CFFI...
++ ABCL has more problems than CCL. It fails to open =/proc/[pid]/fd/[fd]=
+  and also have problems with CFFI.
+
+Test reports on the other OS'es are greatly appreciated.
+Run =./simple-build-test.sh=, assuming it already loads quicklisp in your
+init files. Help me!
+
+* Dependencies
 
 It depends on the latest libfixposix available at
 https://github.com/sionescu/libfixposix .
