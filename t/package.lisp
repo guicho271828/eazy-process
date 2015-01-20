@@ -171,8 +171,10 @@
 
 ;; notice the newline!
 (test trivial-shell
-  (is (string= "10
-" (shell-command "expr 1 + 2 + 3 + 4")))
+  (is (= 10 (read-from-string
+             (shell-command "expr 1 + 2 + 3 + 4"))))
+  (is (= 2 (read-from-string
+            (nth-value 1 (shell-command "echo 2 >&2")))))
   ;; bash-specific stuff
   (let ((*interpreter* "bash -c"))
     (is (string= "1 2 3
