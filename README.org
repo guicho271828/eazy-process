@@ -25,8 +25,8 @@
 (defvar in "t/test-input")
 (defvar out "t/test-output")
 
-(defvar p1 (shell '("cat") `(,in  ,pipe))) ; fd 0, fd 1
-(defvar p2 (shell '("cat") `(,pipe ,out))) ; fd 0, fd 1
+(defvar p1 (shell '("cat") `(,in  ,pipe))) ; fd 0:pathname, 1:pipe
+(defvar p2 (shell '("cat") `(,pipe ,out))) ; fd 0:pipe, 1:pathname
 
 (wait p1)
 (wait p2)
@@ -40,13 +40,14 @@ it also finish the process with SIGKILL.
 
 ** Implicit Piping
 
-If you do not specify the pipe, a new pipe is implicitly created for each
-fd, and the /other/ end of the pipe is accessible with =(fd process fdnum)=.
+If you do not specify pipes nor pathnames and use some keywords like =:output=, a new
+pipe is implicitly created for each fd, and the /other/ end of the pipe is
+accessible with =(fd process fdnum)=. When =nil= is specified, it means /dev/null.
 
 #+BEGIN_SRC lisp
     (let* ((in "t/test-input")
-           (p1 (shell '("cat") `((,in :direction :input) :out :out)))
-           (p2 (shell '("cat") `(,(fd p1 1) :out :out))))
+           (p1 (shell '("cat") `(,in :output))) ; fd 0,1 where 1 is an implicit pipe
+           (p2 (shell '("cat") `(,(fd p1 1) :out :o :input :in :i nil)))) ; fd 0-6
       (wait p1)
       (wait p2))
 #+END_SRC
