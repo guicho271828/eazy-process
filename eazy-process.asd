@@ -55,5 +55,17 @@
                  ;; (:file :sb-run-program)
                  )))
   :serial t
-  :description ""
+  :description "Yet Another Portable Library for Process Handling / Subshell Invokation"
+  :long-description "In `run-program` interface in the popular
+  implementations, piping between subprocesses are hard. It requires either
+  reading the entire output stream and packing the contents as a new
+  string-input-stream, or using some other implementation-specific
+  functions. Also, compatibility libraries e.g.  trivial-shell or
+  inferior-shell, often depend on these functions, implying the same
+  problem. Iolib also has `run-program` that allows easy piping, but it is
+  restricted to 3 fds: `input,output,error`.
+
+  Eazy-process provides a clean, declarative and thin layer to the
+  processes. It depends on the concept of 'everything is a file' and do not
+  provide interfaces to streams."
   :in-order-to ((test-op (load-op eazy-process.test))))
