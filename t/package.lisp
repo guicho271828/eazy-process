@@ -122,29 +122,52 @@
          (in (localpath "t/test-input"))
          (out (localpath "t/test-output"))
          (err (localpath "t/test-error")))
-      (with-ensure-missing-files (err out)
+    (with-ensure-missing-files (err out)
       (let ((p1 (shell '("cat") `((,in :direction :input)
                                   (,pipe :direction :output)
                                   :out)))
             (p2 (shell '("cat") `((,pipe :direction :input)
-                                    (,out :direction :output
-                                          :if-does-not-exist :create)
-                                    (,err :direction :output
-                                          :if-does-not-exist :create)))))
+                                  (,out :direction :output
+                                        :if-does-not-exist :create)
+                                  (,err :direction :output
+                                        :if-does-not-exist :create)))))
         (close-pipe pipe)
         ;; since lisp process does not use this pipe,
         ;; it should close both fds, or p2 does not terminate
-          (print :waiting-p1)
+        (print :waiting-p1)
         (print (multiple-value-list (wait p1)))
-          (print :waiting-p2)
+        (print :waiting-p2)
         (print (multiple-value-list (wait p2)))
-          (is (probe-file out))
-          (is (probe-file err))
-          (with-open-file (s out)
-            (is (string= "guicho" (read-line s))))
-          (with-open-file (s err)
-            (signals error
+        (is (probe-file out))
+        (is (probe-file err))
+        (with-open-file (s out)
+          (is (string= "guicho" (read-line s))))
+        (with-open-file (s err)
+          (signals error
             (read-char s))))))) ; because it should write nothing to the error output
+
+(test explicit-pipe-nodir
+  (let* ((pipe (pipe))
+         (in (localpath "t/test-input"))
+         (out (localpath "t/test-output"))
+         (err (localpath "t/test-error")))
+    (with-ensure-missing-files (err out)
+      (let ((p1 (shell '("cat") `(,in ,pipe)))
+            (p2 (shell '("cat") `(,pipe ,out ,err))))
+        (close-pipe pipe)
+        ;; since lisp process does not use this pipe,
+        ;; it should close both fds, or p2 does not terminate
+        (print :waiting-p1)
+        (print (multiple-value-list (wait p1)))
+        (print :waiting-p2)
+        (print (multiple-value-list (wait p2)))
+        (is (probe-file out))
+        (is (probe-file err))
+        (with-open-file (s out)
+          (is (string= "guicho" (read-line s))))
+        (with-open-file (s err)
+          (signals error
+            (read-char s)))))))
 
 #+nil
 (test tee

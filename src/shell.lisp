@@ -12,7 +12,7 @@ subshell implemented with fork-execvp
                      (fdspecs '#.+fdspecs-default+)
                      environments
                      (search t))
-  (let ((fdspecs (mapcar #'canonicalize-fdspec fdspecs)))
+  (let ((fdspecs (mapcar #'canonicalize-fdspec fdspecs (iota (length fdspecs)))))
     (let ((pid (fork)))
       (cond
         ;; ((= -1 pid) ;; this is already handled by iolib, so don't care

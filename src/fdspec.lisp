@@ -9,11 +9,15 @@
   ;; note that if read==i then duplication does not occur
   (unless (= old new) (isys:close old)))
 
-(defun canonicalize-fdspec (fdspec)
+(defun canonicalize-fdspec (fdspec &optional (fd 0))
   "Take an fd-specifier and return a cons of (parent-fn . child-fn) where
 both parent-fn and child-fn are closures of 1 arg, the fd on the child end.
 Each function runs a job that should be done in the context of
 parent/child process.
+
+if FD is specified and the direction is not specified, use the default
+direction of that fd by default. For FD > 2, there is no default direction
+and it signals an error.
 
 Parent-fn should return the fd of the parent-end."
   (ematch fdspec
@@ -37,10 +41,18 @@ Parent-fn should return the fd of the parent-end."
              (isys:close fdspec) nil)
            (lambda (i)
              (dclose fdspec i))))
+    ;; without options
+    ((pipe)
+     (%pipe fdspec :direction (elt +fdspecs-default+ fd)))
+    ((type pathname)
+     (%open fdspec :direction (elt +fdspecs-default+ fd)))
+    ;; with options
     ((list* (and pipe (pipe)) options)
      (apply #'%pipe pipe options))
     ((list* (and path (type pathname)) options)
-     (apply #'%open path options))))
+     (apply #'%open path options))
+    ;; dev/null (idea in iolib)
+    (nil (canonicalize-fdspec "/dev/null" fd))))
 
 (defun %pipe (pipe &key (direction :input))
   ;; On the child side, close the old fd and the parent side of fd.  On the
