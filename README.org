@@ -162,7 +162,7 @@ When =search= is nil, it disables the pathname resolving using PATH.
 : openspec := (path-or-pipe &key direction if-exists if-does-not-exist)
 : path-or-pipe := <pipe object> | <pathname>
 : direction := :input | :output | :io | :probe
-: if-exists := :ovewrite | :supersede | :append | :error
+: if-exists := :overwrite | :supersede | :append | :error
 : if-does-not-exist := :create | :error
 
 + =output= form and =input= form implicitly create a new pipe.
