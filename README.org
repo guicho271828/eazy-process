@@ -4,7 +4,7 @@
 * What it does
 
 + Declarative process handling
-+ Subprocess spawned by POSIX fork&exec, no impl-specific interface
++ Subprocesses spawned by POSIX fork&exec, no impl-specific interface
 + Memory / CPU-time management of the child processes
 + [-] Compatibility layer to the existing State-of-the-Art libraries 
   + [X] trivial-shell
