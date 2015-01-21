@@ -105,7 +105,6 @@ The new subprocess reflects the inntermost limitation.
     (shell ...))) ; 5 sec, 500 MB
 #+END_SRC
 
-
 * Somewhat Longer Description
 
 In `run-program` interface in the popular implementations, piping between
@@ -210,7 +209,7 @@ the subprocess inherits the environment of the parent lisp process.
 =unset= -ting the environment value is not available.
 
 * Compatibility Layers
-** trivial-shell compatibility
+** /trivial-shell/ compatibility
 
 Spawns an interpreter like bash, tsch, sh, perl etc. and
 returns =(values string string fixnum)=.
@@ -234,13 +233,13 @@ Note that =*bourne-compatible-shell*= is replaced with =*interpreter*=.
  (shell-command "print(1+3)"))   ; --> "4", "", 0
 #+END_SRC
 
-** sb-ext:run-program compatibility
+** /inferior-shell/ compatibility
 
 TBP
 
-** inferior-shell compatibility
+** /run-program/ compatibility
 
-TBP
+*Abandoned*
 
 * Author
 
