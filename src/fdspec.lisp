@@ -52,7 +52,7 @@ Parent-fn should return the fd of the parent-end."
     ((list* (and path (type pathname)) options)
      (apply #'%open path options))
     ;; dev/null (idea in iolib)
-    (nil (canonicalize-fdspec "/dev/null" fd))))
+    (nil (canonicalize-fdspec #p"/dev/null" fd))))
 
 (defun %pipe (pipe &key (direction :input))
   ;; On the child side, close the old fd and the parent side of fd.  On the

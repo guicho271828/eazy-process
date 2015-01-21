@@ -56,6 +56,10 @@
       (is (string= (machine-instance)
                    (read-line s))))))
 
+(test devnull
+  (shell `("hostname") '(nil nil)))
+
+
 (test implicit-pipe
   (let (pid1 pid2)
     (finishes
