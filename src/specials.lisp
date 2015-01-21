@@ -8,17 +8,7 @@ Define some special variables
 
 |#
 
-(defparameter +fdspecs-default+ '(:input :output :output)
-  "fd-specifier is one of 6 symbols
-:i, :in, :input, :o,:out,:output, or an integer fd.
-The first 3 and the last 3 symbols are the synonyms.")
-
-;; (defparameter *rlimit-resources* nil
-;;   "An alist of (cl-rlimit:+rlimit-XXX+ . value).
-;; This value does not affect the lisp process itself; The effect is applied to the child process only.
-;; Rather than modifying this variable directly, use `with-rlimit' instead.")
-;; 
-;; ;;  <--- could be possible.
+(defparameter +fdspecs-default+ '(:input :output :output))
 
 (defparameter +max-rlimit-constant+
   #.(max +rlimit-address-space+ 	+rlimit-as+
