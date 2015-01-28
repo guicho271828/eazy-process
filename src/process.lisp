@@ -3,8 +3,7 @@
 
 (defclass process ()
   ((#:pid :reader pid :initarg :pid)
-   (#:fds :reader %fds :initarg :fds)
-   (#:external-format :accessor external-format))
+   (#:fds :reader %fds :initarg :fds))
   (:documentation
    "A class representing a process."))
 
