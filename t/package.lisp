@@ -9,22 +9,7 @@
         :cl-ppcre
         :fiveam
         :iterate :alexandria :cffi :optima :cl-rlimit)
-  (:shadow :fail)
-  (:export
-   #:trivial-shell
-   #:test-1
-   #:test-input
-   #:test-space
-   #:procfs
-   #:io
-   #:statm
-   #:stat
-   #:shell
-   #:threads
-   #:subprocesses
-   #:pgid
-   #:ppid
-   #:pids))
+  (:shadow :fail))
 (in-package :eazy-process.test)
 
 (defun localpath (str)
