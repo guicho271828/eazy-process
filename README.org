@@ -29,10 +29,24 @@ Even if you forget waiting the process, it is handled by trivial-garbage
 --- when a process object (here, p1 and p2) is GC-ed, it is automatically
 finalized -- killed and waited.
 
-To ensure the process is finalized, =with-process= would help you.
-Note that if you leave too many processes alive,
-the total number of file descriptors might hit the system-provided limit,
-which is around 1000 by default.
+To ensure the process is finalized, =with-process= might help you.
+It ensures the subprocess is terminated and no zombie
+remains. However, it does not synchronize with the subprocess by itself ---
+synchronization should be done manually.
+
+#+BEGIN_SRC lisp
+(with-process (p1 '("sleep" "3"))
+  (print :x))
+;; p1 is killed right after the execution of (print :x),
+;; which means that the subprocess does not actually run for 3 seconds.
+
+(with-process (p1 '("sleep" "3"))
+  (print :x)
+  (wait p1)) ;; synchronization. Waits for 3 sec
+#+END_SRC
+
+Note that if you leave too many processes alive, the total number of file
+descriptors might hit the system-provided limit (around 1000 by default).
 
 ** Implicit Piping
 
