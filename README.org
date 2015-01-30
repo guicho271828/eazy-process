@@ -232,11 +232,7 @@ TBP
 
 *Abandoned*
 
-* Author
-
-Masataro Asai (guicho2.71828@gmail.com)
-
-* Copyright
+* Author & Copyright
 
 Copyright (c) 2014 Masataro Asai (guicho2.71828@gmail.com)
 
