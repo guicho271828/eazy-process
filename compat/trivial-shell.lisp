@@ -65,24 +65,11 @@ The input is read from the :input key argument.
             (with-open-file (s (fd-as-pathname p 0)
                                :direction :output
                                :if-exists :overwrite)
-              ;; for debugging
-              #+nil
-              (let ((s (make-echo-stream s *standard-output*)))
-                (write-sequence input s))
               (write-sequence input s))
             (iolib.syscalls:close (fd p 0))
-            #+nil (print :pipe-closed)
             (return-from shell-command
-              (values (prog1 
-                          (with-open-file (s (fd-as-pathname p 1)) (read-all-chars s))
-                                        ;(print :wait-finished)
-                        )
-                      (prog1 
-                          (with-open-file (s (fd-as-pathname p 2)) (read-all-chars s))
-                                        ;(print :wait-finished)
-                        )
-                      (prog1 (nth-value 1 (wait p))
-                                        ;(print :wait-finished)
-                        ))))
+              (values (with-open-file (s (fd-as-pathname p 1)) (read-all-chars s))
+                      (with-open-file (s (fd-as-pathname p 2)) (read-all-chars s))
+                      (nth-value 1 (wait p)))))
         (:abort (finalize-process p))))))
 
