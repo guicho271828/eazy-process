@@ -59,4 +59,4 @@
    ;; #:process-input
    ;; #:process-output
    ;; #:process-error
-   ))
+   #:with-process))

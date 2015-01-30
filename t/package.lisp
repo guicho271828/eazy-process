@@ -173,6 +173,17 @@
           (signals error
             (read-char s)))))))
 
+(test with-process
+  (finishes
+    (with-process (p '("sleep" "3"))
+      (print :waiting)
+      (wait p)
+      (print :waited-3sec!)))
+  (finishes
+    (with-process (p '("sleep" "1000"))
+      (print :early-termination))))
+
+
 #+nil
 (test tee
     (let* ((in (localpath "t/test-input"))

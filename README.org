@@ -1,8 +1,7 @@
 
 #+startup: showall
 
-* What it does
-
++ Simplified API/implementation, achieved by *REMOVING* some features in run-program
 + Declarative process handling
 + Subprocesses spawned by POSIX fork&exec, no impl-specific interface
 + Memory / CPU-time management of the child processes
@@ -10,13 +9,6 @@
   + [X] trivial-shell
   + [ ] inferior-shell
   + [ ] sb-ext:run-program
-
-* What it doesn't
-
-+ writing to/reading from the input/output of a specific process
-+ creating a stream
-+ using processes as a subroutine
-+ mimicking the shell scripts
 
 * Usage
 
@@ -35,14 +27,18 @@
 Processes are async by default.
 Even if you forget waiting the process, it is handled by trivial-garbage
 --- when a process object (here, p1 and p2) is GC-ed, it is automatically
-kill(2)ed and wait(2)ed. When the process is still alive after SIGTERM,
-it also finish the process with SIGKILL.
+finalized -- killed and waited.
+
+To ensure the process is finalized, =with-process= would help you.
+Note that if you leave too many processes alive,
+the total number of file descriptors might hit the system-provided limit,
+which is around 1000 by default.
 
 ** Implicit Piping
 
-If you do not specify pipes nor pathnames and use some keywords like =:output=, a new
-pipe is implicitly created for each fd, and the /other/ end of the pipe is
-accessible with =(fd process fdnum)=. When =nil= is specified, it means /dev/null.
+If you do not specify pipes nor pathnames, a new pipe is created for each
+fd, and the /other/ end of the pipe is accessible with =(fd process
+fdnum)=. When =nil= is specified, it means /dev/null.
 
 #+BEGIN_SRC lisp
     (let* ((in "t/test-input")
@@ -54,10 +50,8 @@ accessible with =(fd process fdnum)=. When =nil= is specified, it means /dev/nul
 
 ** Reading the output
 
-The output of the subprocess can be read from =fd-as-pathname=, which
-returns the pathname =/dev/fd/[fd]=.
-*EAZY-PROCESS sticks with file descriptors and files*,
-and do not provide a stream interface.
+The output of the subprocess is *NOT directly accessible with EAZY-PROCESS*.
+Instead, open the pathname returned by =fd-as-pathname=, which is =/dev/fd/[fd]=.
 
 #+BEGIN_SRC lisp
 (test read
@@ -67,12 +61,11 @@ and do not provide a stream interface.
                    (read-line s))))))
 #+END_SRC
 
-Bye bye Windows.
+This has greatly simplified the API of eazy-process.
 
 ** Resource management
 
-Macro =with-rlimit= dynamically binds the current rlimit
-resource limitation. 
+Macro =with-rlimit= dynamically binds the current rlimit resource limitation. 
 As noted in =*rlimit-resources*= docstring, this does not affect the lisp process itself.
 --- It only affect the new child processes spawned by =shell=.
 
@@ -93,9 +86,7 @@ is killed by SIGXCPU.
        (is (= 24 termsig)))))
 #+END_SRC
 
-This macro can be nested, and unlike original rlimit, you can increase the
-number (but not above the limit of the lisp process itself).
-The new subprocess reflects the inntermost limitation.
+This macro can be nested, and the new subprocess reflects the inntermost limitation.
 
 #+BEGIN_SRC lisp
 (with-rlimit ((+rlimit-cpu-time+ 3))

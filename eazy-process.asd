@@ -39,6 +39,7 @@
                  (:file :fdspec)
                  (:file :shell)
                  (:file :process)
+                 (:file :macros)
                  (:file :resources)
                  #+nil
                  (:module :linux
