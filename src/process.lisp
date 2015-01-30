@@ -113,5 +113,14 @@ This means that the 5'th fd of the lisp process is connected to the 1st fd of th
 
 (defun fd-as-pathname (process fd)
   "Return the pathname for each file descriptor.
-Lisp can read/write to each fd by opening this file."
+Lisp can read/write to each fd by opening this file.
+
+Since the buffer size of file-stream is implementation-dependent, and the
+call to cl:read might cache a considerable amount of characters from the
+file, we are not able to ensure that the same file can be opened more than once.
+
+Even if you just cl:open the file and just cl:read-char the stream,
+it might read the entire characters of the file into the buffer as a side-effect.
+We just advise you not to open the file more than once.
+"
   (format nil "/dev/fd/~a" (fd process fd)))

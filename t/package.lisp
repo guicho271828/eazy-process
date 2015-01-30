@@ -168,6 +168,25 @@
     (with-process (p '("sleep" "1000"))
       (print :early-termination))))
 
+(test open-single
+  (let ((p (shell '("seq" "10"))))
+    (with-open-file (s (fd-as-pathname p 1))
+      (is (= 1 (read s)))
+      (is (= 2 (read s))))))
+
+(test open-multiple-times
+  (let ((p (shell '("seq" "10"))))
+    (with-open-file (s (fd-as-pathname p 1))
+      (is (= 1 (read s))))
+    ;; Once the stream is closed, the contents of the pipe may already be
+    ;; read(2) into the stream buffer. Therefore, the second READ may see
+    ;; an end-of-file.  However, this is an implementation-dependend
+    ;; behavior, since it depends on the buffer size in each
+    ;; file-stream implementation.
+    (with-open-file (s (fd-as-pathname p 1))
+      #+sbcl
+      (signals end-of-file
+        (read s)))))
 
 #+nil
 (test tee
