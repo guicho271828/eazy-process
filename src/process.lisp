@@ -31,15 +31,15 @@ because it prevents process object from GC-ing."
   (map nil #'%close-fd-safely fds)
   (handler-case ; in case pid does not exist
       (when (zerop (waitpid pid iolib/syscalls:WNOHANG))
-        (format t "~&; Killing ~a~&" pid)
+        (warn "Killing ~a" pid)
         (kill pid sig)
         (when (zerop (waitpid pid iolib/syscalls:WNOHANG))
-          (format t "~&; Force killing ~a~&" pid)
+          (warn "Force killing ~a" pid)
           (kill pid 9)
           (waitpid pid 0)))
     (iolib.syscalls:syscall-error (c)
       (declare (ignore c))
-      ;; (format t "~&; Process ~a does not exist!~&" pid)
+      (warn "Process ~a does not exist -- maybe already killed?" pid)
       nil)))
 
 (defun %close-fd-safely (fd)
