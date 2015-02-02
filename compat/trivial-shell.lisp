@@ -2,7 +2,7 @@
 
 #|
 
-*  trivial-shell compatibility (almost)
+*  trivial-shell compatibility
 
 Trivial-shell is "A simple Common-Lisp interface to the underlying Operating System".
 It runs a shell command in a sequencial manner.
@@ -42,6 +42,8 @@ the interpreter. (This is defined in function `eazy-process:shell'.) The
 actual pathname of the intepreter can be resolved using PATH environment
 variable.
 ")
+
+(define-symbol-macro *bourne-compatible-shell* *interpreter*)
 
 (defun read-all-chars (s)
   (iter (while (peek-char nil s nil nil))
