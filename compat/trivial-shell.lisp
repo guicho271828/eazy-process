@@ -58,7 +58,10 @@ variable.
           (peek-char nil s nil nil))
         (collect (read-char s nil nil) result-type string)))
 
-(defun shell-command (command &key (input "") (external-format :default))
+(defun shell-command (command &key
+                                (input "")
+                                (external-format :default)
+                                verbose)
   "simple interface compatible to trivial-shell @
 https://github.com/gwkkwg/trivial-shell.git.
 
@@ -68,7 +71,8 @@ The input is read from the :input key argument.
   (let ((command (if (pathnamep command)
                      (namestring command)
                      command)))
-    (format *trace-output* "~&; ~a '~a'" *interpreter* command)
+    (when verbose
+      (format *trace-output* "~&; ~a '~a'" *interpreter* command))
     (let (p)
       (unwind-protect-case ()
           (progn
