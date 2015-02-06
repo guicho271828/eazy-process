@@ -67,7 +67,14 @@ The input is read from the :input key argument.
             (with-open-file (s (fd-as-pathname p 0)
                                :direction :output
                                :if-exists :overwrite)
-              (write-sequence input s))
+              (etypecase input
+                (stream
+                 (handler-case
+                     (loop (write-char (read-char input) s))
+                   (end-of-file (c)
+                     (declare (ignore c)))))
+                (sequence
+                 (write-sequence input s))))
             (iolib.syscalls:close (fd p 0))
             (return-from shell-command
               (values (with-open-file (s (fd-as-pathname p 1)) (read-all-chars s))

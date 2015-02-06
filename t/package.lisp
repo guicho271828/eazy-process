@@ -220,7 +220,8 @@
   ;; bash-specific stuff
   (let ((*interpreter* "bash -c"))
     (is (string= "1 2 3
-" (shell-command "echo {1..3}"))))
+" 
+                 (shell-command "echo {1..3}"))))
   (let ((*interpreter* "perl -e"))
     (is (string= "4" (shell-command "print(1+3)")))))
 
@@ -231,6 +232,10 @@
 (test test-input
   (is (= 5 (parse-integer
             (shell-command "wc -c" :input "hello")
+            :junk-allowed t)))
+  ;; trivial-shell can take a stream as input
+  (is (= 5 (parse-integer
+            (shell-command "wc -c" :input (make-string-input-stream "hello"))
             :junk-allowed t))))
 
 

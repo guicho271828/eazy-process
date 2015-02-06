@@ -46,9 +46,8 @@ maintain compatibility.
  (shell-command "print(1+3)"))   ; --> "4", "", 0
 #+END_SRC
 
-
-
-
+=shell-command= takes =:input= keyword argument, which can be either a
+string or a stream. Eazy-process handles it correctly.
 
 * /INFERIOR-SHELL/ Compatibility
 
