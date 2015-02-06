@@ -49,7 +49,7 @@ variable.
   (iter (while (peek-char nil s nil nil))
         (collect (read-char s nil nil) result-type string)))
 
-(defun shell-command (command &key (input ""))
+(defun shell-command (command &key (input "") (external-format :default))
   "simple interface compatible to trivial-shell @
 https://github.com/gwkkwg/trivial-shell.git.
 
@@ -77,8 +77,14 @@ The input is read from the :input key argument.
                  (write-sequence input s))))
             (iolib.syscalls:close (fd p 0))
             (return-from shell-command
-              (values (with-open-file (s (fd-as-pathname p 1)) (read-all-chars s))
-                      (with-open-file (s (fd-as-pathname p 2)) (read-all-chars s))
+              (values (with-open-file (s (fd-as-pathname p 1)
+                                         :external-format
+                                         external-format)
+                        (read-all-chars s))
+                      (with-open-file (s (fd-as-pathname p 2)
+                                         :external-format
+                                         external-format)
+                        (read-all-chars s))
                       (nth-value 1 (wait p)))))
         (:abort (finalize-process p))))))
 
