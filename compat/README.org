@@ -5,10 +5,8 @@ https://github.com/gwkkwg/trivial-shell.git
 
 Trivial-shell is "A simple Common-Lisp interface to the underlying
 Operating System". It runs a shell command in a sequencial manner.
-In this compatibility version, the underlying interpreter no longer have to
-be a bourne-compatible-shell, e.g., you can use =perl -e 'XXX'= .
 
-Incompatibility: Timeout-related stuff and EXIT are removed.
+*Incompatibility*: Timeout-related stuff and EXIT are removed.
 
 : trivial-shell:*BOURNE-COMPATIBLE-SHELL* --- *interpreter*
 : trivial-shell:GET-ENV-VAR               --- (environments) in the main library
@@ -19,18 +17,24 @@ Incompatibility: Timeout-related stuff and EXIT are removed.
 : trivial-shell:TIMEOUT-ERROR-COMMAND     --- NOTINCLUDED
 : trivial-shell:WITH-TIMEOUT              --- NOTINCLUDED
 
+*Enhancement* =eazy-process:shell-command= also takes =:external-format= keyword argument.
+
 =shell-command= spawns an interpreter like bash, tsch, sh, perl etc.
 It returns 3 values, stdout-string, stderr-string, and the return status,
 of type =(values string string fixnum)=.  Commands are run synchronously,
 i.e., it always waits for the process to finish.
 
+=trivial-shell:shell-command= takes =:input= keyword argument, which can be
+either a string or a stream (though the stream version is not
+documented). Eazy-process handles it correctly.
+
+In this compatibility version, the underlying interpreter no longer have to
+be a bourne-compatible-shell, e.g., you can use =perl -e 'XXX'= .
+Therefore, =*bourne-compatible-shell*= is renamed as =*interpreter*= .
+However, there is still a symbol-macro for it to maintain the compatibility.
+
 =shell-command= is implemented with =shell=, therefore it runs where the
 resource binding established by =with-rlimit= is in effect.
-
-Note that =*bourne-compatible-shell*= is renamed as =*interpreter*= and
-deprecated since it no longer requires the underlying shell to be a
-bourne-compatible shell, though there is still a symbol-macro for it to
-maintain compatibility.
 
 #+BEGIN_SRC lisp
 (shell-command "expr 1 + 2 + 3 + 4") ; --> "10\n", "", 0
@@ -45,9 +49,6 @@ maintain compatibility.
 (let ((*interpreter* "perl -e"))
  (shell-command "print(1+3)"))   ; --> "4", "", 0
 #+END_SRC
-
-=shell-command= takes =:input= keyword argument, which can be either a
-string or a stream. Eazy-process handles it correctly.
 
 * /INFERIOR-SHELL/ Compatibility
 
