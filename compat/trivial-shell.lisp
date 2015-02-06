@@ -46,7 +46,16 @@ variable.
 (define-symbol-macro *bourne-compatible-shell* *interpreter*)
 
 (defun read-all-chars (s)
-  (iter (while (peek-char nil s nil nil))
+  (iter (while (listen s)
+          ;; bugfix --- fails to peek-char when the full data is not available
+          ;; Unhandled sb-int:stream-decoding-error in thread #<sb-thread:thread
+          ;;                                                    "main thread" running
+          ;;                                                     {1002C4EC23}>:
+          ;;   :utf-8 stream decoding error on
+          ;;   #<sb-sys:fd-stream for "file /proc/2357/fd/10" {1002CFF593}>:
+          ;;     the octet sequence #(181) cannot be decoded.
+          #+nil
+          (peek-char nil s nil nil))
         (collect (read-char s nil nil) result-type string)))
 
 (defun shell-command (command &key (input "") (external-format :default))
