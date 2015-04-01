@@ -114,7 +114,9 @@ Parent-fn should return the fd of the parent-end."
        (assert (probe-file path)
                nil ":if-does-not-exist flag was :error, but the file ~a doesnTt exist"
                path))
-      (nil))
+      (nil (assert (eq :probe direction) nil
+                   ":if-does-not-exist flag was NIL, the direction should be :probe, actually ~a"
+                   direction)))
     ;; ;; always, for the sake of fifo
     ;; (setf mask (logior mask isys:o-nonblock))
     (cons (constantly nil)
