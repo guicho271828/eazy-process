@@ -2,8 +2,7 @@
 (in-package :eazy-process)
 
 
-(defmacro with-process (&whole whole 
-                               (process argv &optional fdspecs environment search)
+(defmacro with-process ((&whole whole process argv &optional fdspecs environment search)
                              &body body)
   "Spawn a process, bind the process to PROCESS,
 execute the body and finalize (= kill and wait w/ nohang) the process.
@@ -24,6 +23,6 @@ The aim of finalization is to release the resources of the process e.g. file des
   `(let (,process)
      (unwind-protect
          (progn
-           (setf ,process (shell ,@(cdr (second whole))))
+           (setf ,process (shell ,@(cdr whole)))
            ,@body)
        (finalize-process ,process))))
