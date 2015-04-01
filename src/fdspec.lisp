@@ -108,8 +108,12 @@ Parent-fn should return the fd of the parent-end."
       ((:overwrite nil) nil))
     ;; returns a file descriptor
     (ecase if-does-not-exist
-      (:create (setf mask (logior mask isys:o-creat)))
-      (:error)
+      (:create
+       (setf mask (logior mask isys:o-creat)))
+      (:error
+       (assert (probe-file path)
+               nil ":if-does-not-exist flag was :error, but the file ~a doesnTt exist"
+               path))
       (nil))
     ;; ;; always, for the sake of fifo
     ;; (setf mask (logior mask isys:o-nonblock))
