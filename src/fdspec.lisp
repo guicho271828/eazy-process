@@ -82,11 +82,13 @@ Parent-fn should return the fd of the parent-end."
                    ((_                (or :overwrite :append))               :error)
                    (((or :output :io) (and (not :overwrite) (not :append))) :create)
                    ((:probe           _ )                                       nil))))
-  ;; if-does-not-exist---one of :error, :create, or nil.
-  ;; The default is
-  ;; :error if direction is :input or if-exists is :overwrite or :append
-  ;; :create if direction is :output or :io, and if-exists is neither :overwrite nor :append;
-  ;; or nil when direction is :probe. 
+  "ANSI CL standard:
+
+   if-does-not-exist---one of :error, :create, or nil.
+   The default is
+   :error if direction is :input or if-exists is :overwrite or :append
+   :create if direction is :output or :io, and if-exists is neither :overwrite nor :append;
+   or nil when direction is :probe."
   (multiple-value-bind (input output mask) ;; partly copied from sbcl
       (ecase direction
         (:input  (values   t nil isys:o-rdonly))
