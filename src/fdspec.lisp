@@ -52,7 +52,12 @@ Parent-fn should return the fd of the parent-end."
     ((list* (and path (type pathname)) options)
      (apply #'%open path options))
     ;; dev/null (idea in iolib)
-    (nil (canonicalize-fdspec #p"/dev/null" fd))))
+    (nil (canonicalize-fdspec
+          (match (elt +fdspecs-default+ fd)
+            (:output `(#p"/dev/null" :direction :output :if-exists :overwrite)) ;; always exists
+            (:input `(#p"/dev/null" :direction :input))
+            (nil (error "There is no default direction for fd ~a, it should be specified!" fd)))
+          fd))))
 
 (defun %pipe (pipe &key (direction :input))
   ;; On the child side, close the old fd and the parent side of fd.  On the
