@@ -101,18 +101,19 @@ Parent-fn should return the fd of the parent-end."
         (:io     (values   t   t isys:o-rdwr))
         (:probe  (values   t nil isys:o-rdonly)))
     (declare (ignorable input output))
-    (ecase if-exists
-      ((:error nil)
-       (assert (not (probe-file path)) nil ":if-exists flag was :error, but the file ~a exists"
-               path)
-       (setf mask (logior mask isys:o-excl)))
-      ;; ((:rename :rename-and-delete)
-      ;;  (setf mask (logior mask isys:o-creat)))
-      ((:supersede)
-       (setf mask (logior mask isys:o-trunc)))
-      (:append
-       (setf mask (logior mask isys:o-append)))
-      ((:overwrite nil) nil))
+    (when (eq direction :output)
+      (ecase if-exists
+        ((:error nil)
+         (assert (not (probe-file path)) nil ":if-exists flag was :error, but the file ~a exists"
+                 path)
+         (setf mask (logior mask isys:o-excl)))
+        ;; ((:rename :rename-and-delete)
+        ;;  (setf mask (logior mask isys:o-creat)))
+        ((:supersede)
+         (setf mask (logior mask isys:o-trunc)))
+        (:append
+         (setf mask (logior mask isys:o-append)))
+        ((:overwrite nil) nil)))
     ;; returns a file descriptor
     (ecase if-does-not-exist
       (:create
