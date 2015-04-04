@@ -82,6 +82,10 @@
       (with-open-file (s (fd-as-pathname p1 1))
         (is (= 2015 (read s)))))))
 
+(test no-direction-for-nonstandard-fds
+  (signals error (shell '("cat") `(:in :out :out #p"file")))
+  (signals error (shell '("cat") `(:in :out :out nil))))
+
 (test file
   (finishes
     (let ((p (shell '("cat") `((,(asdf:system-relative-pathname
