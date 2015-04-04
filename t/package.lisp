@@ -259,12 +259,12 @@
     (finishes (print (multiple-value-list (shell-command *exit1*))))
     (let ((p (shell `(,(namestring *exit0*)))))
       (destructuring-bind (exited exitstatus &rest args) 
-          (print (multiple-value-list (wait p)))
+          (print (wait p))
         (is-true exited)
         (is (= 0 exitstatus))))
     (let ((p (shell `(,(namestring *exit1*)))))
       (destructuring-bind (exited exitstatus &rest args) 
-          (print (multiple-value-list (wait p)))
+          (print (wait p))
         (is-true exited)
         (is (= 1 exitstatus))))))
 
@@ -274,7 +274,7 @@
     (finishes (print (multiple-value-list (shell-command *malloc*))))
     (let ((p (shell `(,(namestring *malloc*))))) ;; allocate 1GB
       (destructuring-bind (exited exitstatus &rest args) 
-          (print (multiple-value-list (wait p)))
+          (print (wait p))
         (is-true exited)
         (is (= 0 exitstatus))))))
 
@@ -287,7 +287,7 @@
       (finishes (print (multiple-value-list (shell-command *malloc*))))
       (let ((p (shell `(,(namestring *malloc*))))) ;; allocate 1GB
         (destructuring-bind (exited exitstatus &rest args) 
-            (print (multiple-value-list (wait p)))
+            (print (wait p))
           (is-true exited)
           (is (= 1 exitstatus)))))))
 
@@ -298,7 +298,7 @@
     (finishes (print (shell-command *spendtime*)))
     (let ((p (shell `(,(namestring *spendtime*))))) ; busy wait
       (destructuring-bind (exited exitstatus ifsignalled termsig &rest args) 
-          (print (multiple-value-list (wait p)))
+          (print (wait p))
         (is-true exited)
         (is (= 0 exitstatus))
         (is-false ifsignalled)
@@ -312,7 +312,7 @@
       (finishes (print (shell-command *spendtime*)))
       (let ((p (shell `(,(namestring *spendtime*)))))
         (destructuring-bind (exited exitstatus ifsignalled termsig &rest args) 
-            (print (multiple-value-list (wait p)))
+            (print (wait p))
           (is-false exited)
           (is-false exitstatus)
           (is-true ifsignalled)

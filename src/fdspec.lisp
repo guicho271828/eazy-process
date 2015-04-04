@@ -43,9 +43,13 @@ Parent-fn should return the fd of the parent-end."
              (dclose fdspec i))))
     ;; without options
     ((pipe)
-     (%pipe fdspec :direction (elt +fdspecs-default+ fd)))
+     (%pipe fdspec
+            :direction (or (elt +fdspecs-default+ fd)
+                           (error "There is no default direction for fd ~a, it should be specified!" fd))))
     ((type pathname)
-     (%open fdspec :direction (elt +fdspecs-default+ fd)))
+     (%open fdspec
+            :direction (or (elt +fdspecs-default+ fd)
+                           (error "There is no default direction for fd ~a, it should be specified!" fd))))
     ;; with options
     ((list* (and pipe (pipe)) options)
      (apply #'%pipe pipe options))
