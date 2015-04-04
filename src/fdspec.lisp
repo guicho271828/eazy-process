@@ -82,7 +82,7 @@ Parent-fn should return the fd of the parent-end."
                 (direction :input)
                 (if-exists :error)
                 (if-does-not-exist
-                 (multiple-value-match (values direction if-exists)
+                 (multiple-value-ematch (values direction if-exists)
                    ((:input           _ )                                    :error)
                    ((_                (or :overwrite :append))               :error)
                    (((or :output :io) (and (not :overwrite) (not :append))) :create)
