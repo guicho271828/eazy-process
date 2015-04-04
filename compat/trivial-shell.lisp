@@ -73,31 +73,90 @@ The input is read from the :input key argument.
                      command)))
     (when verbose
       (format *trace-output* "~&; ~a '~a'" *interpreter* command))
-    (let (p)
-      (unwind-protect-case ()
-          (progn
-            (setf p (shell (append (ppcre:split "[ \t]+" *interpreter*) (list command))))
-            (with-open-file (s (fd-as-pathname p 0)
-                               :direction :output
-                               :if-exists :overwrite)
-              (etypecase input
-                (stream
-                 (handler-case
-                     (loop (write-char (read-char input) s))
-                   (end-of-file (c)
-                     (declare (ignore c)))))
-                (sequence
-                 (write-sequence input s))))
-            (iolib.syscalls:close (fd p 0))
-            (return-from shell-command
-              (values (with-open-file (s (fd-as-pathname p 1)
-                                         :external-format
-                                         external-format)
-                        (read-all-chars s))
-                      (with-open-file (s (fd-as-pathname p 2)
-                                         :external-format
-                                         external-format)
-                        (read-all-chars s))
-                      (nth-value 1 (wait p)))))
-        (:abort (finalize-process p))))))
+    (with-process (p (append (ppcre:split "[ \t]+" *interpreter*) (list command)))
+      ;; input
+      (with-open-file (s (fd-as-pathname p 0)
+                         :direction :output
+                         :if-exists :overwrite)
+        (etypecase input
+          (stream
+           (handler-case
+               (loop (write-char (read-char input) s))
+             (end-of-file (c)
+               (declare (ignore c)))))
+          (sequence
+           (write-sequence input s))))
+      ;; this is necessary since the lisp process may still open the fd
+      (iolib.syscalls:close (fd p 0))
+      ;; now, read the output
+      (with-open-file (s1 (fd-as-pathname p 1) :external-format external-format)
+        (with-open-file (s2 (fd-as-pathname p 2) :external-format external-format)
+          (loop-impl4 p s1 s2))))))
+
+(defun loop-impl2 (p s1 s2)
+  "busy-waiting. works but inefficient"
+  (iter
+    outer
+    (iter (match (read-char-no-hang s1 nil)
+            ((and c (type character))
+             (in outer (collect c result-type string into out)))
+            (_ (leave))))
+    (iter (match (read-char-no-hang s2 nil)
+            ((and c (type character))
+             (in outer (collect c result-type string into err)))
+            (_ (leave))))
+    (match (wait p :nohang)
+      ((list* _ exitstatus)
+       ;; ensure everything is read
+       (iter (match (read-char-no-hang s1 nil)
+               ((and c (type character))
+                (in outer (collect c result-type string into out)))
+               (_ (leave))))
+       (iter (match (read-char-no-hang s2 nil)
+               ((and c (type character))
+                (in outer (collect c result-type string into err)))
+               (_ (leave))))
+       (leave
+        (values (coerce out 'string)
+                (coerce err 'string)
+                exitstatus))))))
+
+(defun loop-impl3 (p s1 s2)
+  "wait and read, however it may stop when it reaches the buffer limit (4 Kbyte or so)"
+  (match (wait p)
+    ((list* _ exitstatus)
+     (values (iter (while (listen s1))
+                   (collect (read-char-no-hang s1 nil) result-type string))
+             (iter (while (listen s2))
+                   (collect (read-char-no-hang s2 nil) result-type string))
+             exitstatus))))
+
+(defun loop-impl4 (p s1 s2)
+  "busy-waiting + 100ms sleep"
+  (iter
+    outer
+    (sleep 1/100)
+    (iter (match (read-char-no-hang s1 nil)
+            ((and c (type character))
+             (in outer (collect c result-type string into out)))
+            (_ (leave))))
+    (iter (match (read-char-no-hang s2 nil)
+            ((and c (type character))
+             (in outer (collect c result-type string into err)))
+            (_ (leave))))
+    (match (wait p :nohang)
+      ((list* _ exitstatus)
+       ;; ensure everything is read
+       (iter (match (read-char-no-hang s1 nil)
+               ((and c (type character))
+                (in outer (collect c result-type string into out)))
+               (_ (leave))))
+       (iter (match (read-char-no-hang s2 nil)
+               ((and c (type character))
+                (in outer (collect c result-type string into err)))
+               (_ (leave))))
+       (leave
+        (values (coerce out 'string)
+                (coerce err 'string)
+                exitstatus))))))
 
