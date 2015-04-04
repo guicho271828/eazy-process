@@ -107,7 +107,7 @@ Parent-fn should return the fd of the parent-end."
     (declare (ignorable input output))
     (when (eq direction :output)
       (ecase if-exists
-        ((:error nil)
+        (:error
          (assert (not (probe-file path)) nil ":if-exists flag was :error, but the file ~a exists"
                  path)
          (setf mask (logior mask isys:o-excl)))
