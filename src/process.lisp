@@ -123,4 +123,4 @@ Even if you just cl:open the file and just cl:read-char the stream,
 it might read the entire characters of the file into the buffer as a side-effect.
 We just advise you not to open the file more than once.
 "
-  (format nil "/dev/fd/~a" (fd process fd)))
+  (pathname (format nil "/dev/fd/~a" (fd process fd))))
