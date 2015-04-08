@@ -68,12 +68,14 @@ https://github.com/gwkkwg/trivial-shell.git.
 returns (values output error-output exit-status).
 The input is read from the :input key argument.
 "
-  (let ((command (if (pathnamep command)
-                     (namestring command)
-                     command)))
+  (let* ((command (if (pathnamep command)
+                      (namestring command)
+                      command))
+         (argv (append (ppcre:split "[ \t]+" *interpreter*)
+                       (list command))))
     (when verbose
       (format *trace-output* "~&; ~a '~a'" *interpreter* command))
-    (with-process (p (append (ppcre:split "[ \t]+" *interpreter*) (list command)))
+    (with-process (p argv)
       ;; input
       (with-open-file (s (fd-as-pathname p 0)
                          :direction :output
