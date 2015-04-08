@@ -59,47 +59,47 @@ then with SIGKILL."
 ;; Note: without calling waitpid, the child becomes a zombie process.
 ;; child process should be waited when the process object is GC'ed.
 
-(declaim (inline wait))
 (defun wait (process &optional option)
   "option is one of :nohang, :untraced, :continued.
-Returns many values:
- (boolean ifexited)
- (integer exitstatus)
- (boolean ifsignalled)
- (integer termsig)
- (boolean coredump)
- (boolean ifstopped)
- (integer stopsig)
- (boolean ifcontinued).
+Returns a value of the following signature:
 
-When the value is inappropriate, some integer values may return NIL.
-For details see man wait(2)."
-  (multiple-value-bind (success status)
+ (vector (boolean ifexited)
+         (integer exitstatus)
+         (boolean ifsignalled)
+         (integer termsig)
+         (boolean coredump)
+         (boolean ifstopped)
+         (integer stopsig)
+         (boolean ifcontinued)
+         (integer status)).
+
+When the value is inappropriate as defined in man wait(2),
+some integer values may return NIL.
+When :nohang is specified but no child has changed its state, 
+then it returns NIL instead.
+`wait(0)', i.e. wait for any children, is not available.
+"
+  (multiple-value-bind (retval status)
       (waitpid (pid process)
                (case option
                  (:nohang iolib/syscalls:WNOHANG)
                  (:untraced iolib/syscalls:WUNTRACED)
                  (:continued iolib/syscalls:WCONTINUED)
                  (t 0)))
-    (when (minusp success)
-      (error 'isys:syscall-error
-             :message "waitpid failed"
-             :code (isys:errno)
-             :syscall "waitpid"))
-    (values
-     (iolib/syscalls:WIFEXITED status)
-     (when (iolib/syscalls:WIFEXITED status)
-       (iolib/syscalls:WEXITSTATUS status))
-     (iolib/syscalls:WIFSIGNALED status)
-     (when (iolib/syscalls:WIFSIGNALED status)
-       (iolib/syscalls:WTERMSIG status))
-     (when (iolib/syscalls:WIFSIGNALED status)
-       (iolib/syscalls:WCOREDUMP status))
-     (iolib/syscalls:WIFSTOPPED status)
-     (when (iolib/syscalls:WIFSTOPPED status)
-       (iolib/syscalls:WSTOPSIG status))
-     (iolib/syscalls:WIFCONTINUED status)
-     status)))
+    (when (plusp retval) ;; nohang and some child has changed its state
+      (list (iolib/syscalls:WIFEXITED status)
+            (when (iolib/syscalls:WIFEXITED status)
+              (iolib/syscalls:WEXITSTATUS status))
+            (iolib/syscalls:WIFSIGNALED status)
+            (when (iolib/syscalls:WIFSIGNALED status)
+              (iolib/syscalls:WTERMSIG status))
+            (when (iolib/syscalls:WIFSIGNALED status)
+              (iolib/syscalls:WCOREDUMP status))
+            (iolib/syscalls:WIFSTOPPED status)
+            (when (iolib/syscalls:WIFSTOPPED status)
+              (iolib/syscalls:WSTOPSIG status))
+            (iolib/syscalls:WIFCONTINUED status)
+            status))))
 
 (defun fd (process n)
   "Returns the file descriptor of the lisp process.

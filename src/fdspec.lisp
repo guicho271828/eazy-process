@@ -43,16 +43,25 @@ Parent-fn should return the fd of the parent-end."
              (dclose fdspec i))))
     ;; without options
     ((pipe)
-     (%pipe fdspec :direction (elt +fdspecs-default+ fd)))
+     (%pipe fdspec
+            :direction (or (elt +fdspecs-default+ fd)
+                           (error "There is no default direction for fd ~a, it should be specified!" fd))))
     ((type pathname)
-     (%open fdspec :direction (elt +fdspecs-default+ fd)))
+     (%open fdspec
+            :direction (or (elt +fdspecs-default+ fd)
+                           (error "There is no default direction for fd ~a, it should be specified!" fd))))
     ;; with options
     ((list* (and pipe (pipe)) options)
      (apply #'%pipe pipe options))
     ((list* (and path (type pathname)) options)
      (apply #'%open path options))
     ;; dev/null (idea in iolib)
-    (nil (canonicalize-fdspec #p"/dev/null" fd))))
+    (nil (canonicalize-fdspec
+          (match (elt +fdspecs-default+ fd)
+            (:output `(#p"/dev/null" :direction :output :if-exists :overwrite)) ;; always exists
+            (:input `(#p"/dev/null" :direction :input))
+            (nil (error "There is no default direction for fd ~a, it should be specified!" fd)))
+          fd))))
 
 (defun %pipe (pipe &key (direction :input))
   ;; On the child side, close the old fd and the parent side of fd.  On the
@@ -77,16 +86,18 @@ Parent-fn should return the fd of the parent-end."
                 (direction :input)
                 (if-exists :error)
                 (if-does-not-exist
-                 (multiple-value-match (values direction if-exists)
+                 (multiple-value-ematch (values direction if-exists)
                    ((:input           _ )                                    :error)
                    ((_                (or :overwrite :append))               :error)
                    (((or :output :io) (and (not :overwrite) (not :append))) :create)
                    ((:probe           _ )                                       nil))))
-  ;; if-does-not-exist---one of :error, :create, or nil.
-  ;; The default is
-  ;; :error if direction is :input or if-exists is :overwrite or :append
-  ;; :create if direction is :output or :io, and if-exists is neither :overwrite nor :append;
-  ;; or nil when direction is :probe. 
+  "ANSI CL standard:
+
+   if-does-not-exist---one of :error, :create, or nil.
+   The default is
+   :error if direction is :input or if-exists is :overwrite or :append
+   :create if direction is :output or :io, and if-exists is neither :overwrite nor :append;
+   or nil when direction is :probe."
   (multiple-value-bind (input output mask) ;; partly copied from sbcl
       (ecase direction
         (:input  (values   t nil isys:o-rdonly))
@@ -94,21 +105,30 @@ Parent-fn should return the fd of the parent-end."
         (:io     (values   t   t isys:o-rdwr))
         (:probe  (values   t nil isys:o-rdonly)))
     (declare (ignorable input output))
-    (ecase if-exists
-      ((:error nil)
-       (setf mask (logior mask isys:o-excl)))
-      ;; ((:rename :rename-and-delete)
-      ;;  (setf mask (logior mask isys:o-creat)))
-      ((:supersede)
-       (setf mask (logior mask isys:o-trunc)))
-      (:append
-       (setf mask (logior mask isys:o-append)))
-      ((:overwrite nil) nil))
+    (when (eq direction :output)
+      (ecase if-exists
+        (:error
+         (assert (not (probe-file path)) nil ":if-exists flag was :error, but the file ~a exists"
+                 path)
+         (setf mask (logior mask isys:o-excl)))
+        ;; ((:rename :rename-and-delete)
+        ;;  (setf mask (logior mask isys:o-creat)))
+        ((:supersede)
+         (setf mask (logior mask isys:o-trunc)))
+        (:append
+         (setf mask (logior mask isys:o-append)))
+        ((:overwrite nil) nil)))
     ;; returns a file descriptor
     (ecase if-does-not-exist
-      (:create (setf mask (logior mask isys:o-creat)))
-      (:error)
-      (nil))
+      (:create
+       (setf mask (logior mask isys:o-creat)))
+      (:error
+       (assert (probe-file path)
+               nil ":if-does-not-exist flag was :error, but the file ~a doesnTt exist"
+               path))
+      (nil (assert (eq :probe direction) nil
+                   ":if-does-not-exist flag was NIL, the direction should be :probe, actually ~a"
+                   direction)))
     ;; ;; always, for the sake of fifo
     ;; (setf mask (logior mask isys:o-nonblock))
     (cons (constantly nil)

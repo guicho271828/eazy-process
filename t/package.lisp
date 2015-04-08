@@ -82,12 +82,25 @@
       (with-open-file (s (fd-as-pathname p1 1))
         (is (= 2015 (read s)))))))
 
+(test no-direction-for-nonstandard-fds
+  (signals error (shell '("cat") `(:in :out :out #p"file")))
+  (signals error (shell '("cat") `(:in :out :out nil))))
+
 (test file
-  (let ((p (shell '("cat") `((,(asdf:system-relative-pathname
-                                :eazy-process "t/test-input") :direction :input)
-                             :out :out))))
-    (with-open-file (s (fd-as-pathname p 1))
-      (is (string= "guicho" (read-line s))))))
+  (finishes
+    (let ((p (shell '("cat") `((,(asdf:system-relative-pathname
+                                  :eazy-process "t/test-input")
+                                 :direction :input)
+                               :out :out))))
+      (with-open-file (s (fd-as-pathname p 1))
+        (is (string= "guicho" (read-line s))))))
+  (finishes
+    ;; using the default direction
+    (let ((p (shell '("cat") `(,(asdf:system-relative-pathname
+                                 :eazy-process "t/test-input")
+                                :out :out))))
+      (with-open-file (s (fd-as-pathname p 1))
+        (is (string= "guicho" (read-line s)))))))
 
 (defun ensure-missing (file)
   (when (probe-file file) (delete-file file)))
@@ -259,12 +272,12 @@
     (finishes (print (multiple-value-list (shell-command *exit1*))))
     (let ((p (shell `(,(namestring *exit0*)))))
       (destructuring-bind (exited exitstatus &rest args) 
-          (print (multiple-value-list (wait p)))
+          (print (wait p))
         (is-true exited)
         (is (= 0 exitstatus))))
     (let ((p (shell `(,(namestring *exit1*)))))
       (destructuring-bind (exited exitstatus &rest args) 
-          (print (multiple-value-list (wait p)))
+          (print (wait p))
         (is-true exited)
         (is (= 1 exitstatus))))))
 
@@ -274,7 +287,7 @@
     (finishes (print (multiple-value-list (shell-command *malloc*))))
     (let ((p (shell `(,(namestring *malloc*))))) ;; allocate 1GB
       (destructuring-bind (exited exitstatus &rest args) 
-          (print (multiple-value-list (wait p)))
+          (print (wait p))
         (is-true exited)
         (is (= 0 exitstatus))))))
 
@@ -287,7 +300,7 @@
       (finishes (print (multiple-value-list (shell-command *malloc*))))
       (let ((p (shell `(,(namestring *malloc*))))) ;; allocate 1GB
         (destructuring-bind (exited exitstatus &rest args) 
-            (print (multiple-value-list (wait p)))
+            (print (wait p))
           (is-true exited)
           (is (= 1 exitstatus)))))))
 
@@ -298,7 +311,7 @@
     (finishes (print (shell-command *spendtime*)))
     (let ((p (shell `(,(namestring *spendtime*))))) ; busy wait
       (destructuring-bind (exited exitstatus ifsignalled termsig &rest args) 
-          (print (multiple-value-list (wait p)))
+          (print (wait p))
         (is-true exited)
         (is (= 0 exitstatus))
         (is-false ifsignalled)
@@ -312,7 +325,7 @@
       (finishes (print (shell-command *spendtime*)))
       (let ((p (shell `(,(namestring *spendtime*)))))
         (destructuring-bind (exited exitstatus ifsignalled termsig &rest args) 
-            (print (multiple-value-list (wait p)))
+            (print (wait p))
           (is-false exited)
           (is-false exitstatus)
           (is-true ifsignalled)

@@ -30,6 +30,7 @@ subshell implemented with fork-execvp
          (collect (funcall parent i) result-type vector))))
 
 (defun %in-child (fdspecs argv environments search)
+  "if the child process died of errno, the exit value is that value"
          (handler-case
              (progn
                (iter (for kind from 0)
@@ -42,7 +43,9 @@ subshell implemented with fork-execvp
                (%exec argv environments search))
            (isys:syscall-error (c)
              (declare (ignorable c))
-             (foreign-funcall "_exit" :int 203))
+             (if (numberp (isys:code-of c))
+                 (foreign-funcall "_exit" :int (isys:code-of c))
+                 (foreign-funcall "_exit" :int 203)))
            (error (c)
              (declare (ignorable c))
              (foreign-funcall "_exit" :int 202))))
