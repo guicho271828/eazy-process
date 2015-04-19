@@ -58,8 +58,15 @@ variable.
           (peek-char nil s nil nil))
         (collect (read-char s nil nil) result-type string)))
 
+(declaim (ftype (function ((or pathname string)
+                           &key
+                           (:input (or stream string null))
+                           (:external-format symbol)
+                           (:verbose t))
+                          (values string string list))
+                shell-command))
 (defun shell-command (command &key
-                                (input "")
+                                input
                                 (external-format :default)
                                 verbose)
   "simple interface compatible to trivial-shell @
@@ -77,17 +84,28 @@ The input is read from the :input key argument.
       (format *trace-output* "~&; ~a '~a'" *interpreter* command))
     (with-process (p argv)
       ;; input
-      (with-open-file (s (fd-as-pathname p 0)
-                         :direction :output
-                         :if-exists :overwrite)
-        (etypecase input
-          (stream
-           (handler-case
-               (loop (write-char (read-char input) s))
-             (end-of-file (c)
-               (declare (ignore c)))))
-          (sequence
-           (write-sequence input s))))
+      (when input
+        (let ((max-retry 100) (failcnt 0))
+          (tagbody
+            :start
+            (handler-case
+                (with-open-file (s (fd-as-pathname p 0)
+                                   :direction :output
+                                   :if-exists :overwrite)
+                  (etypecase input
+                    (stream
+                     (handler-case
+                         (loop (write-char (read-char input) s))
+                       (end-of-file (c)
+                         (declare (ignore c)))))
+                    (sequence
+                     (write-sequence input s))))
+              (file-error (c)
+                (sleep 0.01)
+                (incf failcnt)
+                (if (< failcnt max-retry)
+                    (go :start)
+                    (signal c)))))))
       ;; this is necessary since the lisp process may still open the fd
       (iolib.syscalls:close (fd p 0))
       ;; now, read the output

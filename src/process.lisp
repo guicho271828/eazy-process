@@ -63,15 +63,15 @@ then with SIGKILL."
   "option is one of :nohang, :untraced, :continued.
 Returns a value of the following signature:
 
- (vector (boolean ifexited)
-         (integer exitstatus)
-         (boolean ifsignalled)
-         (integer termsig)
-         (boolean coredump)
-         (boolean ifstopped)
-         (integer stopsig)
-         (boolean ifcontinued)
-         (integer status)).
+ (list (boolean ifexited)
+       (integer exitstatus)
+       (boolean ifsignalled)
+       (integer termsig)
+       (boolean coredump)
+       (boolean ifstopped)
+       (integer stopsig)
+       (boolean ifcontinued)
+       (integer status)).
 
 When the value is inappropriate as defined in man wait(2),
 some integer values may return NIL.
