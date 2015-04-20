@@ -85,20 +85,22 @@ The input is read from the :input key argument.
     (with-process (p argv)
       ;; input
       (macrolet ((with-retry-open-file ((max tag) args &body body)
-                   (with-gensyms (maxcnt failcnt condition)
-                     `(let ((,maxcnt ,max)
-                            (,failcnt 0))
-                        (tagbody
-                          ,tag
-                          (handler-case
-                              (with-open-file ,args
-                                ,@body)
-                            (file-error (,condition)
-                              (sleep 0.01)
-                              (incf ,failcnt)
-                              (if (< ,failcnt ,maxcnt)
-                                  (go ,tag)
-                                  (signal ,condition)))))))))
+                   (with-gensyms (maxcnt failcnt condition blk)
+                     `(block ,blk
+                        (let ((,maxcnt ,max)
+                              (,failcnt 0))
+                          (tagbody
+                            ,tag
+                            (handler-case
+                                (return-from ,blk
+                                  (with-open-file ,args
+                                    ,@body))
+                              (file-error (,condition)
+                                (sleep 0.01)
+                                (incf ,failcnt)
+                                (if (< ,failcnt ,maxcnt)
+                                    (go ,tag)
+                                    (signal ,condition))))))))))
         (when input
           (with-retry-open-file (100 :start) 
             (s (fd-as-pathname p 0)
