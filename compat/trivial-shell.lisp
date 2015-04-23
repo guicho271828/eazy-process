@@ -118,11 +118,15 @@ The input is read from the :input key argument.
       ;; this is necessary since the lisp process may still open the fd
       (iolib.syscalls:close (fd p 0))
       ;; now, read the output
-      (with-retry-open-file (100 :start1)
-        (s1 (fd-as-pathname p 1) :external-format external-format)
-        (with-retry-open-file (100 :start2)
-          (s2 (fd-as-pathname p 2) :external-format external-format)
-          (loop-impl4 p s1 s2))))))
+      (multiple-value-bind (out err status)
+          (with-retry-open-file (100 :start1)
+            (s1 (fd-as-pathname p 1) :external-format external-format)
+            (with-retry-open-file (100 :start2)
+              (s2 (fd-as-pathname p 2) :external-format external-format)
+              (loop-impl4 p s1 s2)))
+        (values (coerce out 'string)
+                (coerce err 'string)
+                status)))))
 
 (defun loop-impl2 (p s1 s2)
   "busy-waiting. works but inefficient"
@@ -187,7 +191,5 @@ The input is read from the :input key argument.
                 (in outer (collect c result-type string into err)))
                (_ (leave))))
        (leave
-        (values (coerce out 'string)
-                (coerce err 'string)
-                exitstatus))))))
+        (values out err exitstatus))))))
 
