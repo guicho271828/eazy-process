@@ -58,8 +58,33 @@ variable.
           (peek-char nil s nil nil))
         (collect (read-char s nil nil) result-type string)))
 
+(defmacro with-retry-open-file ((max tag) args &body body)
+  (with-gensyms (maxcnt failcnt condition blk)
+    `(block ,blk
+       (let ((,maxcnt ,max)
+             (,failcnt 0))
+         (tagbody
+           ,tag
+           (handler-case
+               (return-from ,blk
+                 (with-open-file ,args
+                   ,@body))
+             (file-error (,condition)
+               (sleep 0.01)
+               (incf ,failcnt)
+               (if (< ,failcnt ,maxcnt)
+                   (go ,tag)
+                   (signal ,condition)))))))))
+
+(declaim (ftype (function ((or pathname string)
+                           &key
+                           (:input (or stream string null))
+                           (:external-format symbol)
+                           (:verbose t))
+                          (values string string list))
+                shell-command))
 (defun shell-command (command &key
-                                (input "")
+                                input
                                 (external-format :default)
                                 verbose)
   "simple interface compatible to trivial-shell @
@@ -77,23 +102,31 @@ The input is read from the :input key argument.
       (format *trace-output* "~&; ~a '~a'" *interpreter* command))
     (with-process (p argv)
       ;; input
-      (with-open-file (s (fd-as-pathname p 0)
-                         :direction :output
-                         :if-exists :overwrite)
-        (etypecase input
-          (stream
-           (handler-case
-               (loop (write-char (read-char input) s))
-             (end-of-file (c)
-               (declare (ignore c)))))
-          (sequence
-           (write-sequence input s))))
+      (when input
+        (with-retry-open-file (100 :start) 
+          (s (fd-as-pathname p 0)
+             :direction :output
+             :if-exists :overwrite)
+          (etypecase input
+            (stream
+             (handler-case
+                 (loop (write-char (read-char input) s))
+               (end-of-file (c)
+                 (declare (ignore c)))))
+            (sequence
+             (write-sequence input s)))))
       ;; this is necessary since the lisp process may still open the fd
       (iolib.syscalls:close (fd p 0))
       ;; now, read the output
-      (with-open-file (s1 (fd-as-pathname p 1) :external-format external-format)
-        (with-open-file (s2 (fd-as-pathname p 2) :external-format external-format)
-          (loop-impl4 p s1 s2))))))
+      (multiple-value-bind (out err status)
+          (with-retry-open-file (100 :start1)
+            (s1 (fd-as-pathname p 1) :external-format external-format)
+            (with-retry-open-file (100 :start2)
+              (s2 (fd-as-pathname p 2) :external-format external-format)
+              (loop-impl4 p s1 s2)))
+        (values (coerce out 'string)
+                (coerce err 'string)
+                status)))))
 
 (defun loop-impl2 (p s1 s2)
   "busy-waiting. works but inefficient"
@@ -158,7 +191,5 @@ The input is read from the :input key argument.
                 (in outer (collect c result-type string into err)))
                (_ (leave))))
        (leave
-        (values (coerce out 'string)
-                (coerce err 'string)
-                exitstatus))))))
+        (values out err exitstatus))))))
 
