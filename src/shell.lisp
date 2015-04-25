@@ -126,7 +126,7 @@ It should be a list of strings (\"NAME1=VALUE1\" \"NAME2=VALUE2\")
 or an alist ((\"NAME1\" . \"VALUE1\") ...).
 When SEARCH is t, it uses execvp/execvpe. (==executable is searched through PATH)
 
-On error during system call in the parent process, iolib/syscalls:syscall-error is signalled.
+On error during system call in the parent process, iolib.syscalls:syscall-error is signalled.
 In the child process, the system call failure result in error status 203.
 FIXME: this might not be good.
 ")
