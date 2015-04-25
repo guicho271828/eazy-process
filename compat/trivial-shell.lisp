@@ -194,7 +194,11 @@ The input is read from the :input key argument.
             ((and c (type character))
              (in outer (collect c result-type string into err)))
             (_ (leave))))
-    (match (wait p :nohang)
+    (match (handler-case (wait p :nohang)
+             (iolib.syscalls:echild () nil)
+             (iolib.syscalls:eintr () nil)
+             #+nil
+             (iolib.syscalls:einval () nil))
       ((list* _ exitstatus)
        ;; ensure everything is read
        (iter (match (read-char-no-hang s1 nil)
