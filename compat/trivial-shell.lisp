@@ -115,8 +115,7 @@ The input is read from the :input key argument.
                  (declare (ignore c)))))
             (sequence
              (write-sequence input s)))))
-      ;; this is necessary since the lisp process may still open the fd
-      (iolib.syscalls:close (fd p 0))
+      (ensure-closed (fd p 0))
       ;; now, read the output
       (multiple-value-bind (out err status)
           (with-retry-open-file (100 :start1)
@@ -127,6 +126,22 @@ The input is read from the :input key argument.
         (values (coerce out 'string)
                 (coerce err 'string)
                 status)))))
+
+(defun ensure-closed (fd)
+  (handler-case
+      ;; this is necessary since the lisp process may still open the fd
+      ;; In such a case, it should be closed, or the process may
+      ;; never finish
+      (iolib.syscalls:close fd)
+    ;; but it might not be the case also, and the fd is already closed
+    ;; and the process has already died, returning ebadf
+    (iolib.syscalls:ebadf ())
+    ;; this is not handled
+    #+nil
+    (iolib.syscalls:eintr ())
+    ;; this is not handled
+    #+nil
+    (iolib.syscalls:eio ())))
 
 (defun loop-impl2 (p s1 s2)
   "busy-waiting. works but inefficient"
@@ -179,7 +194,11 @@ The input is read from the :input key argument.
             ((and c (type character))
              (in outer (collect c result-type string into err)))
             (_ (leave))))
-    (match (wait p :nohang)
+    (match (handler-case (wait p :nohang)
+             (iolib.syscalls:echild () nil)
+             (iolib.syscalls:eintr () nil)
+             #+nil
+             (iolib.syscalls:einval () nil))
       ((list* _ exitstatus)
        ;; ensure everything is read
        (iter (match (read-char-no-hang s1 nil)

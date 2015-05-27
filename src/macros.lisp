@@ -25,4 +25,9 @@ The aim of finalization is to release the resources of the process e.g. file des
          (progn
            (setf ,process (shell ,@(cdr whole)))
            ,@body)
-       (finalize-process ,process))))
+       ;; there is a timing where process is not set.
+       ;; (let ((process (shell...)))) is also a problem
+       ;; since the atomicity of let and unwin-protect is not guaranteed
+       ;; (the stack may be unwound before the unwind-protect takes effect)
+       (when ,process
+         (finalize-process ,process)))))

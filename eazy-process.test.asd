@@ -12,7 +12,9 @@
 
 (defsystem eazy-process.test
   :author "Masataro Asai"
+  :mailto "guicho2.71828@gmail.com"
   :license "LLGPL"
+  :description "Test library of eazy-process"
   :depends-on (:eazy-process
                :fiveam)
   :components ((:module "t"

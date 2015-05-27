@@ -9,7 +9,7 @@
         :optima :optima.ppcre
         :cffi
         :cl-rlimit)
-  (:import-from :iolib/syscalls
+  (:import-from :iolib.syscalls
                 :getpid :getppid :getpgid
                 :fork
                 :execv ; :execve
