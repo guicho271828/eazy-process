@@ -122,7 +122,7 @@ The input is read from the :input key argument.
             (s1 (fd-as-pathname p 1) :external-format external-format)
             (with-retry-open-file (:start2)
               (s2 (fd-as-pathname p 2) :external-format external-format)
-              (loop-impl4 p s1 s2)))
+              (loop-exponential-backoff p s1 s2)))
         (values (coerce out 'string)
                 (coerce err 'string)
                 status)))))
@@ -211,4 +211,52 @@ The input is read from the :input key argument.
                (_ (leave))))
        (leave
         (values out err exitstatus))))))
+
+;; idea: exponential backoff
+
+(defun loop-exponential-backoff (p s1 s2)
+  (let ((out (make-array 1 :element-type 'character
+                         :adjustable t
+                         :fill-pointer 0))
+        (err (make-array 1 :element-type 'character
+                         :adjustable t
+                         :fill-pointer 0))
+        exitstatus)
+    (exponential-backoff:with-exponential-backoff
+        ((:initial-delay-ms 1 :jitter-factor 0.1))
+      (iter (with out-exhaust = nil)
+            (with err-exhaust = nil)
+            (until (and out-exhaust err-exhaust))
+            (unless out-exhaust
+              (match (read-char-no-hang s1 nil :eof)
+                ((and c (type character))
+                 (vector-push-extend c out (length out)))
+                (_ (setf out-exhaust t))))
+            (unless err-exhaust
+              (match (read-char-no-hang s2 nil :eof)
+                ((and c (type character))
+                 (vector-push-extend c err (length err))) ;; O(n) vector
+                (_ (setf err-exhaust t)))))
+      (match (handler-case (wait p :nohang)
+               (iolib.syscalls:echild () nil)
+               (iolib.syscalls:eintr () nil)
+               #+nil
+               (iolib.syscalls:einval () nil))
+        (nil
+         #+nil (format *error-output* "~&backoff!")
+         (error "retry"))
+        ((list* _ exitstatus1)
+         (setf exitstatus exitstatus1))))
+    ;; ensure everything is read
+    (iter (match (read-char-no-hang s1 nil :eof)
+            ((and c (type character))
+             (vector-push-extend c out (length out)))
+            (:eof (leave))
+            (nil (error "this should not happen"))))
+    (iter (match (read-char-no-hang s2 nil :eof)
+            ((and c (type character))
+             (vector-push-extend c err (length err))) ;; O(n) vector
+            (:eof (leave))
+            (nil (error "this should not happen"))))
+    (values out err exitstatus)))
 
