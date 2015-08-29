@@ -58,7 +58,7 @@ variable.
           (peek-char nil s nil nil))
         (collect (read-char s nil nil) result-type string)))
 
-(defmacro with-retry-open-file ((max tag) args &body body)
+(defmacro with-retry-open-file ((tag &key (max MOST-POSITIVE-FIXNUM)) args &body body)
   (with-gensyms (maxcnt failcnt condition blk)
     `(block ,blk
        (let ((,maxcnt ,max)
@@ -70,7 +70,7 @@ variable.
                  (with-open-file ,args
                    ,@body))
              (file-error (,condition)
-               (sleep 0.01)
+               (sleep 1/1000)
                (incf ,failcnt)
                (if (< ,failcnt ,maxcnt)
                    (go ,tag)
@@ -103,7 +103,7 @@ The input is read from the :input key argument.
     (with-process (p argv)
       ;; input
       (when input
-        (with-retry-open-file (100 :start) 
+        (with-retry-open-file (:start) 
           (s (fd-as-pathname p 0)
              :direction :output
              :if-exists :overwrite)
@@ -118,9 +118,9 @@ The input is read from the :input key argument.
       (ensure-closed (fd p 0))
       ;; now, read the output
       (multiple-value-bind (out err status)
-          (with-retry-open-file (100 :start1)
+          (with-retry-open-file (:start1)
             (s1 (fd-as-pathname p 1) :external-format external-format)
-            (with-retry-open-file (100 :start2)
+            (with-retry-open-file (:start2)
               (s2 (fd-as-pathname p 2) :external-format external-format)
               (loop-impl4 p s1 s2)))
         (values (coerce out 'string)
@@ -185,7 +185,7 @@ The input is read from the :input key argument.
   "busy-waiting + 100ms sleep"
   (iter
     outer
-    (sleep 1/100)
+    (sleep 1/1000)
     (iter (match (read-char-no-hang s1 nil)
             ((and c (type character))
              (in outer (collect c result-type string into out)))
