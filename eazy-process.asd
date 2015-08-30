@@ -27,8 +27,7 @@
                         :iolib/syscalls
                         :trivial-garbage
                         :cl-ppcre
-                        :cl-rlimit
-                        :exponential-backoff)
+                        :cl-rlimit)
   :components ((:module :src
                 :serial t
                 :components

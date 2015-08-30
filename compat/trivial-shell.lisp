@@ -222,41 +222,60 @@ The input is read from the :input key argument.
                          :adjustable t
                          :fill-pointer 0))
         exitstatus)
-    (exponential-backoff:with-exponential-backoff
-        ((:initial-delay-ms 1 :jitter-factor 0.1))
+    (iter
+      (for sec initially 1/1000 then (* 2 sec))
       (iter (with out-exhaust = nil)
             (with err-exhaust = nil)
             (until (and out-exhaust err-exhaust))
             (unless out-exhaust
+              (handler-case
+                  (match (read-char-no-hang s1 nil :eof)
+                    ((and c (type character))
+                     (vector-push-extend c out (length out)))
+                    (_ (setf out-exhaust t)))
+                #+sbcl
+                (sb-int:stream-decoding-error ()
+                  (setf out-exhaust t))))
+            (unless err-exhaust
+              (handler-case 
+                  (match (read-char-no-hang s2 nil :eof)
+                    ((and c (type character))
+                     (vector-push-extend c err (length err))) ;; O(n) vector
+                    (_ (setf err-exhaust t)))
+                #+sbcl
+                (sb-int:stream-decoding-error ()
+                  (setf err-exhaust t)))))
+      (match (handler-case (wait p :nohang)
+               (iolib.syscalls:echild () '(echild))
+               (iolib.syscalls:eintr () '(eintr))
+               #+nil
+               (iolib.syscalls:einval () '(einval)))
+        (nil
+         ;; (format *error-output* "~&backoff!")
+         ;; (force-output *error-output*)
+         (sleep sec))
+        ((list* _ exitstatus1)
+         (setf exitstatus exitstatus1)
+         ;; (format *error-output* "~&child died!")
+         (leave))))
+    ;; ensure everything is read
+    (iter (handler-case
               (match (read-char-no-hang s1 nil :eof)
                 ((and c (type character))
                  (vector-push-extend c out (length out)))
-                (_ (setf out-exhaust t))))
-            (unless err-exhaust
+                (:eof (leave))
+                (nil (error "this should not happen")))
+            #+sbcl
+            (sb-int:stream-decoding-error ()
+              (leave))))
+    (iter (handler-case
               (match (read-char-no-hang s2 nil :eof)
                 ((and c (type character))
                  (vector-push-extend c err (length err))) ;; O(n) vector
-                (_ (setf err-exhaust t)))))
-      (match (handler-case (wait p :nohang)
-               (iolib.syscalls:echild () nil)
-               (iolib.syscalls:eintr () nil)
-               #+nil
-               (iolib.syscalls:einval () nil))
-        (nil
-         #+nil (format *error-output* "~&backoff!")
-         (error "retry"))
-        ((list* _ exitstatus1)
-         (setf exitstatus exitstatus1))))
-    ;; ensure everything is read
-    (iter (match (read-char-no-hang s1 nil :eof)
-            ((and c (type character))
-             (vector-push-extend c out (length out)))
-            (:eof (leave))
-            (nil (error "this should not happen"))))
-    (iter (match (read-char-no-hang s2 nil :eof)
-            ((and c (type character))
-             (vector-push-extend c err (length err))) ;; O(n) vector
-            (:eof (leave))
-            (nil (error "this should not happen"))))
+                (:eof (leave))
+                (nil (error "this should not happen")))
+            #+sbcl
+            (sb-int:stream-decoding-error ()
+              (leave))))
     (values out err exitstatus)))
 
