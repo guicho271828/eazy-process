@@ -122,7 +122,9 @@ The input is read from the :input key argument.
             (s1 (fd-as-pathname p 1) :external-format external-format)
             (with-retry-open-file (:start2)
               (s2 (fd-as-pathname p 2) :external-format external-format)
-              (loop-exponential-backoff p s1 s2)))
+              (read-loop p
+                         (if verbose (make-echo-stream s1 *standard-output*) s1)
+                         (if verbose (make-echo-stream s2 *error-output*) s2))))
         (values (coerce out 'string)
                 (coerce err 'string)
                 status)))))
@@ -143,78 +145,7 @@ The input is read from the :input key argument.
     #+nil
     (iolib.syscalls:eio ())))
 
-(defun loop-impl2 (p s1 s2)
-  "busy-waiting. works but inefficient"
-  (iter
-    outer
-    (iter (match (read-char-no-hang s1 nil)
-            ((and c (type character))
-             (in outer (collect c result-type string into out)))
-            (_ (leave))))
-    (iter (match (read-char-no-hang s2 nil)
-            ((and c (type character))
-             (in outer (collect c result-type string into err)))
-            (_ (leave))))
-    (match (wait p :nohang)
-      ((list* _ exitstatus)
-       ;; ensure everything is read
-       (iter (match (read-char-no-hang s1 nil)
-               ((and c (type character))
-                (in outer (collect c result-type string into out)))
-               (_ (leave))))
-       (iter (match (read-char-no-hang s2 nil)
-               ((and c (type character))
-                (in outer (collect c result-type string into err)))
-               (_ (leave))))
-       (leave
-        (values (coerce out 'string)
-                (coerce err 'string)
-                exitstatus))))))
-
-(defun loop-impl3 (p s1 s2)
-  "wait and read, however it may stop when it reaches the buffer limit (4 Kbyte or so)"
-  (match (wait p)
-    ((list* _ exitstatus)
-     (values (iter (while (listen s1))
-                   (collect (read-char-no-hang s1 nil) result-type string))
-             (iter (while (listen s2))
-                   (collect (read-char-no-hang s2 nil) result-type string))
-             exitstatus))))
-
-(defun loop-impl4 (p s1 s2)
-  "busy-waiting + 100ms sleep"
-  (iter
-    outer
-    (sleep 1/1000)
-    (iter (match (read-char-no-hang s1 nil)
-            ((and c (type character))
-             (in outer (collect c result-type string into out)))
-            (_ (leave))))
-    (iter (match (read-char-no-hang s2 nil)
-            ((and c (type character))
-             (in outer (collect c result-type string into err)))
-            (_ (leave))))
-    (match (handler-case (wait p :nohang)
-             (iolib.syscalls:echild () nil)
-             (iolib.syscalls:eintr () nil)
-             #+nil
-             (iolib.syscalls:einval () nil))
-      ((list* _ exitstatus)
-       ;; ensure everything is read
-       (iter (match (read-char-no-hang s1 nil)
-               ((and c (type character))
-                (in outer (collect c result-type string into out)))
-               (_ (leave))))
-       (iter (match (read-char-no-hang s2 nil)
-               ((and c (type character))
-                (in outer (collect c result-type string into err)))
-               (_ (leave))))
-       (leave
-        (values out err exitstatus))))))
-
-;; idea: exponential backoff
-
-(defun loop-exponential-backoff (p s1 s2)
+(defun read-loop (p s1 s2)
   (let ((out (make-array 1 :element-type 'character
                          :adjustable t
                          :fill-pointer 0))
@@ -223,7 +154,6 @@ The input is read from the :input key argument.
                          :fill-pointer 0))
         exitstatus)
     (iter
-      (for sec initially 1/1000 then (* 2 sec))
       (iter (with out-exhaust = nil)
             (with err-exhaust = nil)
             (until (and out-exhaust err-exhaust))
@@ -253,7 +183,7 @@ The input is read from the :input key argument.
         (nil
          ;; (format *error-output* "~&backoff!")
          ;; (force-output *error-output*)
-         (sleep sec))
+         (sleep 1/1000))
         ((list* _ exitstatus1)
          (setf exitstatus exitstatus1)
          ;; (format *error-output* "~&child died!")
