@@ -99,7 +99,7 @@ The input is read from the :input key argument.
          (argv (append (ppcre:split "[ \t]+" *interpreter*)
                        (list command))))
     (when verbose
-      (format *trace-output* "~&; ~a '~a'" *interpreter* command))
+      (format *error-output* "~&; ~a '~a'" *interpreter* command))
     (with-process (p argv)
       ;; input
       (when input
