@@ -45,19 +45,6 @@ variable.
 
 (define-symbol-macro *bourne-compatible-shell* *interpreter*)
 
-(defun read-all-chars (s)
-  (iter (while (listen s)
-          ;; bugfix --- fails to peek-char when the full data is not available
-          ;; Unhandled sb-int:stream-decoding-error in thread #<sb-thread:thread
-          ;;                                                    "main thread" running
-          ;;                                                     {1002C4EC23}>:
-          ;;   :utf-8 stream decoding error on
-          ;;   #<sb-sys:fd-stream for "file /proc/2357/fd/10" {1002CFF593}>:
-          ;;     the octet sequence #(181) cannot be decoded.
-          #+nil
-          (peek-char nil s nil nil))
-        (collect (read-char s nil nil) result-type string)))
-
 (defmacro with-retry-open-file ((tag &key (max MOST-POSITIVE-FIXNUM)) args &body body)
   (with-gensyms (maxcnt failcnt condition blk)
     `(block ,blk
@@ -83,8 +70,10 @@ variable.
                            (:verbose t))
                           (values string string list))
                 shell-command))
+
 (defun shell-command (command &key
-                                input
+                                (input "")
+                                (result-type :string)
                                 (external-format :default)
                                 verbose)
   "simple interface compatible to trivial-shell @
@@ -92,6 +81,10 @@ https://github.com/gwkkwg/trivial-shell.git.
 
 returns (values output error-output exit-status).
 The input is read from the :input key argument.
+
+Additional functionality:
+
+:external-format --- specifies the decoding of the output.
 "
   (let* ((command (if (pathnamep command)
                       (namestring command)
@@ -101,35 +94,28 @@ The input is read from the :input key argument.
     (when verbose
       (format *error-output* "~&; ~a '~a'" *interpreter* command))
     (with-process (p argv)
-      ;; input
-      (when input
-        (with-retry-open-file (:start) 
-          (s (fd-as-pathname p 0)
-             :direction :output
-             :if-exists :overwrite)
-          (etypecase input
-            (stream
-             (handler-case
-                 (loop (write-char (read-char input) s))
-               (end-of-file (c)
-                 (declare (ignore c)))))
-            (sequence
-             (write-sequence input s)))))
-      (ensure-closed (fd p 0))
-      ;; now, read the output
-      (multiple-value-bind (out err status)
-          (with-retry-open-file (:start1)
-            (s1 (fd-as-pathname p 1) :external-format external-format)
-            (with-retry-open-file (:start2)
-              (s2 (fd-as-pathname p 2) :external-format external-format)
-              (read-loop p
-                         (if verbose (make-echo-stream s1 *standard-output*) s1)
-                         (if verbose (make-echo-stream s2 *error-output*) s2))))
-        (values (coerce out 'string)
-                (coerce err 'string)
-                status)))))
+      (with-retry-open-file (:start)
+        (s (fd-as-pathname p 0) :direction :output :if-exists :overwrite)
+        (with-retry-open-file (:start1)
+          (s1 (fd-as-pathname p 1) :direction :input :external-format external-format)
+          (with-retry-open-file (:start2)
+            (s2 (fd-as-pathname p 2) :direction :input :external-format external-format)
+            (ecase result-type
+              (:string
+               (io-loop-string p
+                               (etypecase input
+                                 (stream input)
+                                 (string (make-string-input-stream input)))
+                               s
+                               (if verbose (make-echo-stream s1 *standard-output*) s1)
+                               (if verbose (make-echo-stream s2 *error-output*) s2))))))))))
 
-(defun ensure-closed (fd)
+;; TODO
+;; :result-type --- if it is :stream, it returns the bare fd-stream.
+;; Note that if you do not read the stream at an appropriate frequency,
+;; the running command may be blocked.
+
+(defun close-fd (fd)
   (handler-case
       ;; this is necessary since the lisp process may still open the fd
       ;; In such a case, it should be closed, or the process may
@@ -145,67 +131,51 @@ The input is read from the :input key argument.
     #+nil
     (iolib.syscalls:eio ())))
 
-(defun read-loop (p s1 s2)
-  (let ((out (make-array 1 :element-type 'character
-                         :adjustable t
-                         :fill-pointer 0))
-        (err (make-array 1 :element-type 'character
-                         :adjustable t
-                         :fill-pointer 0))
-        exitstatus)
-    (iter
-      (iter (with out-exhaust = nil)
-            (with err-exhaust = nil)
-            (until (and out-exhaust err-exhaust))
-            (unless out-exhaust
-              (handler-case
-                  (match (read-char-no-hang s1 nil :eof)
-                    ((and c (type character))
-                     (vector-push-extend c out (length out)))
-                    (_ (setf out-exhaust t)))
-                #+sbcl
-                (sb-int:stream-decoding-error ()
-                  (setf out-exhaust t))))
-            (unless err-exhaust
-              (handler-case 
-                  (match (read-char-no-hang s2 nil :eof)
-                    ((and c (type character))
-                     (vector-push-extend c err (length err))) ;; O(n) vector
-                    (_ (setf err-exhaust t)))
-                #+sbcl
-                (sb-int:stream-decoding-error ()
-                  (setf err-exhaust t)))))
-      (match (handler-case (wait p :nohang)
-               (iolib.syscalls:echild () '(echild))
-               (iolib.syscalls:eintr () '(eintr))
-               #+nil
-               (iolib.syscalls:einval () '(einval)))
-        (nil
-         ;; (format *error-output* "~&backoff!")
-         ;; (force-output *error-output*)
-         (sleep 1/1000))
-        ((list* _ exitstatus1)
-         (setf exitstatus exitstatus1)
-         ;; (format *error-output* "~&child died!")
-         (leave))))
-    ;; ensure everything is read
-    (iter (handler-case
-              (match (read-char-no-hang s1 nil :eof)
-                ((and c (type character))
-                 (vector-push-extend c out (length out)))
-                (:eof (leave))
-                (nil (error "this should not happen")))
-            #+sbcl
-            (sb-int:stream-decoding-error ()
-              (leave))))
-    (iter (handler-case
-              (match (read-char-no-hang s2 nil :eof)
-                ((and c (type character))
-                 (vector-push-extend c err (length err))) ;; O(n) vector
-                (:eof (leave))
-                (nil (error "this should not happen")))
-            #+sbcl
-            (sb-int:stream-decoding-error ()
-              (leave))))
-    (values out err exitstatus)))
+(defun io-loop-string (p in s0 s1 s2)
+  (iter
+    (with out = (make-string-output-stream))
+    (with err = (make-string-output-stream))
+    (with exitstatus = nil)
+    (try-read-write-char in s0  (fd p 0))
+    (try-read-write-char s1 out (fd p 1))
+    (try-read-write-char s2 err (fd p 2))
+    (unless exitstatus
+      (setf exitstatus (check-alive p)))
+    (while (or (null exitstatus)
+               (open-stream-p s0)
+               (open-stream-p s1)
+               (open-stream-p s2)))
+    (finally (return (values (get-output-stream-string out)
+                             (get-output-stream-string err)
+                             exitstatus)))))
+
+(defun try-read-write-char (sin sout fd)
+  (handler-case
+      (when (and (open-stream-p sin)
+                 (open-stream-p sout))
+        (when-let ((c (read-char-no-hang sin)))
+          (write-char c sout)
+          t))
+    (end-of-file ()
+      (close sin)
+      (close sout)
+      (close-fd fd)
+      (values nil t))
+    #+sbcl
+    (sb-int:stream-decoding-error ()
+      (close sin)
+      (close sout)
+      (close-fd fd)
+      (values nil t))))
+
+(defun check-alive (process)
+  (match (handler-case (wait process :nohang)
+           (iolib.syscalls:echild () '(echild))
+           (iolib.syscalls:eintr () '(eintr))
+           #+nil
+           (iolib.syscalls:einval () '(einval)))
+    (nil nil)
+    ((list* _ exitstatus1)
+     exitstatus1)))
+
 
