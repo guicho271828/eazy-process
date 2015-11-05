@@ -20,5 +20,5 @@
   :components ((:module "t"
                 :components
                 ((:file "package"))))
-  :perform (load-op :after (op c)
+  :perform (test-op :after (op c)
                     (eval (read-from-string "(fiveam:run! :eazy-process)"))))

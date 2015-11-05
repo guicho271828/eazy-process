@@ -69,4 +69,4 @@
   Eazy-process provides a clean, declarative and thin layer to the
   processes. It depends on the concept of 'everything is a file' and do not
   provide interfaces to streams."
-  :in-order-to ((test-op (load-op eazy-process.test))))
+  :in-order-to ((test-op (test-op eazy-process.test))))
