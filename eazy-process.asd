@@ -22,8 +22,8 @@
   :licence "MIT"
   :depends-on (:iterate :alexandria
                         :cffi
-                        :optima
-                        :optima.ppcre
+                        :trivia
+                        :trivia.ppcre
                         :iolib/syscalls
                         :trivial-garbage
                         :cl-ppcre

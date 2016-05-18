@@ -8,7 +8,7 @@
         :eazy-process
         :cl-ppcre
         :fiveam
-        :iterate :alexandria :cffi :optima :cl-rlimit)
+        :iterate :alexandria :cffi :trivia :cl-rlimit)
   (:shadow :fail))
 (in-package :eazy-process.test)
 
