@@ -157,8 +157,7 @@ Also, it depends on the following libraries:
     Alexandria is a collection of portable public domain utilities.
 + cffi by *James Bielman  <jamesjb@jamesjb.com>* :
     The Common Foreign Function Interface
-+ optima by *Tomohiro Matsuyama* :
-    Optimized Pattern Matching Library
++ trivia by *Masataro Asai*
 + iolib
 + trivial-garbage
 + cl-rlimit

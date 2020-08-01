@@ -6,7 +6,7 @@
 (in-package :cl-user)
 (defpackage :eazy-process
   (:use :cl :iterate :alexandria
-        :optima :optima.ppcre
+        :trivia :trivia.ppcre
         :cffi
         :cl-rlimit)
   (:import-from :iolib.syscalls
